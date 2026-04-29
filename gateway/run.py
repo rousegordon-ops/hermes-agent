@@ -5171,6 +5171,21 @@ class GatewayRunner:
                 _response_time, _api_calls, _resp_len,
             )
 
+            # Append to persistent request log for daily cost report metrics
+            try:
+                import json as _json
+                _req_log_path = os.environ.get("REQUEST_LOG_PATH", "/opt/data/request-log.jsonl")
+                with open(_req_log_path, "a") as _rl:
+                    _rl.write(_json.dumps({
+                        "ts": time.time(),
+                        "api_calls": _api_calls,
+                        "platform": _platform_name,
+                        "chat": source.chat_id or "unknown",
+                        "duration": round(_response_time, 1),
+                    }) + "\n")
+            except Exception:
+                pass  # non-critical — don't break gateway for metrics
+
             # Successful turn — clear any stuck-loop counter for this session.
             # This ensures the counter only accumulates across CONSECUTIVE
             # restarts where the session was active (never completed).
