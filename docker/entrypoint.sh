@@ -166,6 +166,23 @@ if [ -n "${GITHUB_TOKEN:-}" ]; then
         ln -sfn "$SRC_DIR/skills" "$WORKSPACE_SKILLS"
         echo "[entrypoint] Linked $WORKSPACE_SKILLS -> $SRC_DIR/skills"
 
+        # Symlink scripts/ and tools/ from the volume's git checkout so
+        # code changes pushed to GitHub take effect on container restart
+        # WITHOUT needing a full image rebuild. The image still ships
+        # baseline copies; we replace them with symlinks pointing at the
+        # cloned repo, which the entrypoint refreshes from origin/main on
+        # every boot. Watcher pushes -> GitHub -> next restart picks up
+        # via these symlinks.
+        for subdir in scripts tools; do
+            if [ -d "$SRC_DIR/$subdir" ]; then
+                if [ -d "$INSTALL_DIR/$subdir" ] && [ ! -L "$INSTALL_DIR/$subdir" ]; then
+                    rm -rf "$INSTALL_DIR/$subdir"
+                fi
+                ln -sfn "$SRC_DIR/$subdir" "$INSTALL_DIR/$subdir"
+                echo "[entrypoint] Linked $INSTALL_DIR/$subdir -> $SRC_DIR/$subdir"
+            fi
+        done
+
         # Spawn the watcher in background. Logs to the volume so they
         # survive container restarts and can be tailed via railway ssh.
         WATCHER_SCRIPT="$INSTALL_DIR/scripts/source_watcher.py"
