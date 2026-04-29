@@ -219,6 +219,32 @@ else
         echo "[entrypoint] cost_report_daemon disabled (need OPENROUTER_API_KEY + TELEGRAM_BOT_TOKEN + TELEGRAM_HOME_CHANNEL)"
 fi
 
+# ---------- Enforce critical config on every boot ----------
+# Defends against config.yaml being seeded fresh after a volume swap,
+# profile clone, or any other event that resets /opt/data. Without this,
+# Hermes silently falls back to whatever ships in cli-config.yaml.example
+# (currently anthropic/claude-opus-4.6) — burned $16 of Opus tokens once
+# already because the model setting evaporated when the volume was
+# attached late in the deploy sequence.
+#
+# Override via env vars in Railway dashboard:
+#   HERMES_ENFORCED_MODEL     — model.default     (default: minimax/minimax-m2.7)
+#   HERMES_ENFORCED_APPROVALS — approvals.mode    (default: smart)
+#
+# `hermes config set` is idempotent (no-op if already set). The `|| true`
+# guards prevent any failure from killing the boot.
+HERMES_BIN="$INSTALL_DIR/.venv/bin/hermes"
+if [ -x "$HERMES_BIN" ]; then
+    "$HERMES_BIN" config set model.default \
+        "${HERMES_ENFORCED_MODEL:-minimax/minimax-m2.7}" >/dev/null 2>&1 \
+        && echo "[entrypoint] Enforced model.default = ${HERMES_ENFORCED_MODEL:-minimax/minimax-m2.7}" \
+        || echo "[entrypoint] WARNING: failed to enforce model.default"
+    "$HERMES_BIN" config set approvals.mode \
+        "${HERMES_ENFORCED_APPROVALS:-smart}" >/dev/null 2>&1 \
+        && echo "[entrypoint] Enforced approvals.mode = ${HERMES_ENFORCED_APPROVALS:-smart}" \
+        || echo "[entrypoint] WARNING: failed to enforce approvals.mode"
+fi
+
 # Final exec: two supported invocation patterns.
 #
 #   docker run <image>                 -> exec `hermes` with no args (legacy default)
