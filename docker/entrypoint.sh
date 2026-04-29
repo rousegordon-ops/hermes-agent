@@ -175,7 +175,7 @@ if [ -n "${GITHUB_TOKEN:-}" ]; then
         # via these symlinks.
         # Defensive: any failure here is logged but does not crash the
         # boot. Without this guard the gateway crash-loops on perms.
-        for subdir in scripts tools; do
+        for subdir in scripts tools gateway; do
             if [ -d "$SRC_DIR/$subdir" ]; then
                 if [ -d "$INSTALL_DIR/$subdir" ] && [ ! -L "$INSTALL_DIR/$subdir" ]; then
                     if ! rm -rf "$INSTALL_DIR/$subdir" 2>/dev/null; then
