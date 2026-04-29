@@ -86,6 +86,100 @@ if [ -d "$INSTALL_DIR/skills" ]; then
     python3 "$INSTALL_DIR/tools/skills_sync.py"
 fi
 
+# ---------- Source-of-truth watcher (optional) ----------
+# When GITHUB_TOKEN is set, clone the fork into the volume, replace
+# the workspace skills/ directory with a symlink into that checkout,
+# and spawn a background watcher that auto-commits + pushes any disk
+# changes (agent self-authored skills, manual edits via railway ssh,
+# etc.) to origin/main within a few minutes. See
+# scripts/source_watcher.py and the design notes ported from
+# GordonClaw's railway-entrypoint.sh.
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+    SRC_DIR="${HERMES_SRC_DIR:-$HERMES_HOME/repo}"
+    REPO="${GITHUB_REPO:-rousegordon-ops/hermes-agent}"
+
+    # Git identity + credential helper. $HOME is /opt/data for the
+    # hermes user (per Dockerfile useradd -d), so .git-credentials
+    # persists in the volume.
+    git config --global user.email "${GIT_AUTHOR_EMAIL:-hermes-bot@users.noreply.github.com}"
+    git config --global user.name  "${GIT_AUTHOR_NAME:-HermesRouse Bot}"
+    git config --global init.defaultBranch main
+    git config --global --unset-all credential.helper 2>/dev/null || true
+    printf 'https://x-access-token:%s@github.com\n' "$GITHUB_TOKEN" > "$HOME/.git-credentials"
+    chmod 600 "$HOME/.git-credentials"
+    git config --global credential.helper "store --file=$HOME/.git-credentials"
+
+    # Clone or refresh source repo. Refresh is conservative: only
+    # reset --hard if local main matches origin/main AND there are no
+    # uncommitted/staged changes. Otherwise preserve local state and
+    # let the watcher push it on the next commit.
+    if [ ! -d "$SRC_DIR/.git" ]; then
+        echo "[entrypoint] Cloning $REPO to $SRC_DIR"
+        if ! git clone --depth 20 "https://github.com/$REPO.git" "$SRC_DIR"; then
+            echo "[entrypoint] WARNING: clone failed; source watcher disabled"
+            SRC_DIR=""
+        fi
+    else
+        echo "[entrypoint] Refreshing $SRC_DIR"
+        if git -C "$SRC_DIR" fetch origin main --quiet 2>&1; then
+            UNPUSHED=$(git -C "$SRC_DIR" rev-list --count origin/main..main 2>/dev/null || echo 0)
+            if git -C "$SRC_DIR" diff --quiet && \
+               git -C "$SRC_DIR" diff --cached --quiet && \
+               [ "$UNPUSHED" -eq 0 ]; then
+                git -C "$SRC_DIR" reset --hard origin/main --quiet
+                echo "[entrypoint] Reset $SRC_DIR to origin/main"
+            else
+                if [ "$UNPUSHED" -gt 0 ]; then
+                    echo "[entrypoint] WARNING: $SRC_DIR has $UNPUSHED unpushed commit(s); preserving"
+                fi
+                if ! git -C "$SRC_DIR" diff --quiet || ! git -C "$SRC_DIR" diff --cached --quiet; then
+                    echo "[entrypoint] WARNING: $SRC_DIR has uncommitted changes; preserving"
+                fi
+            fi
+        else
+            echo "[entrypoint] WARNING: git fetch failed; using existing checkout as-is"
+        fi
+    fi
+
+    # Symlink workspace skills/ into the source checkout. On first
+    # boot, migrate any user-authored skill dirs that exist in the
+    # workspace but not in source before flipping to the symlink.
+    if [ -n "$SRC_DIR" ] && [ -d "$SRC_DIR/skills" ]; then
+        WORKSPACE_SKILLS="$HERMES_HOME/skills"
+        if [ -d "$WORKSPACE_SKILLS" ] && [ ! -L "$WORKSPACE_SKILLS" ]; then
+            for skill in "$WORKSPACE_SKILLS"/*/; do
+                [ -d "$skill" ] || continue
+                name=$(basename "$skill")
+                if [ ! -e "$SRC_DIR/skills/$name" ]; then
+                    echo "[entrypoint] Migrating workspace skill $name into source"
+                    cp -r "$skill" "$SRC_DIR/skills/$name"
+                fi
+            done
+            # Preserve the bundled-skills manifest so skills_sync.py
+            # doesn't think it's a fresh install on next boot.
+            if [ -f "$WORKSPACE_SKILLS/.bundled_manifest" ] && \
+               [ ! -f "$SRC_DIR/skills/.bundled_manifest" ]; then
+                cp "$WORKSPACE_SKILLS/.bundled_manifest" "$SRC_DIR/skills/.bundled_manifest"
+            fi
+            rm -rf "$WORKSPACE_SKILLS"
+        fi
+        ln -sfn "$SRC_DIR/skills" "$WORKSPACE_SKILLS"
+        echo "[entrypoint] Linked $WORKSPACE_SKILLS -> $SRC_DIR/skills"
+
+        # Spawn the watcher in background. Logs to the volume so they
+        # survive container restarts and can be tailed via railway ssh.
+        WATCHER_SCRIPT="$INSTALL_DIR/scripts/source_watcher.py"
+        if [ -f "$WATCHER_SCRIPT" ]; then
+            python3 "$WATCHER_SCRIPT" >> "$HERMES_HOME/source-watcher.log" 2>&1 &
+            echo "[entrypoint] Spawned source_watcher (pid $!)"
+        else
+            echo "[entrypoint] WARNING: $WATCHER_SCRIPT not found; auto-commit disabled"
+        fi
+    fi
+else
+    echo "[entrypoint] GITHUB_TOKEN not set — source watcher disabled (skill changes won't auto-commit to GitHub)"
+fi
+
 # Final exec: two supported invocation patterns.
 #
 #   docker run <image>                 -> exec `hermes` with no args (legacy default)
