@@ -79,3 +79,17 @@ JSON object with:
 - Dates in the past will return empty results from SerpAPI
 - SerpAPI free tier has limited monthly searches — don't loop/retry excessively
 - Some routes return no "best_flights" — the script falls back to "other_flights"
+- `curl` is not available in this container — use the script (Python urllib) for all HTTP calls
+
+## Troubleshooting
+
+### HTTP 401 "Invalid API key"
+The key exists in `SERPAPI_KEY` but SerpAPI rejects it. Validate independently:
+```python
+python3 -c "
+import urllib.request, os
+url = f'https://serpapi.com/account?api_key={os.environ[\"SERPAPI_KEY\"]}'
+with urllib.request.urlopen(url, timeout=10) as r: print(r.read().decode())
+"
+```
+If `/account` also 401s, the key is expired/revoked — ask the user to refresh it. Don't retry the flights search; it will fail the same way.
