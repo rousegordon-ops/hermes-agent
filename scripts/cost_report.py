@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Daily LLM cost report — sends OpenRouter balance + 24h spend + request
-metrics to Telegram. Fires daily at 6 AM America/Los_Angeles.
+metrics to Telegram. Fires daily at 6 AM America/Los_Angeles. Reader for
+the request log; gateway/run.py is the writer side.
 
 Metrics:
   - OpenRouter balance and 24h spend (from balance snapshot delta)
