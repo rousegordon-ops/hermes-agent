@@ -59,11 +59,10 @@ jobs:
       - name: Restart Railway (no rebuild)
         if: steps.classify.outputs.verb == 'restart'
         env:
-          # Set both env var names — Railway's CLI uses RAILWAY_TOKEN for
-          # project-deploy tokens and RAILWAY_API_TOKEN for account/workspace
-          # API tokens. Setting both makes the workflow work regardless of
-          # which token type is in the GitHub secret.
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          # Account/workspace API token. Don't set RAILWAY_TOKEN at the
+          # same time — the CLI prioritizes RAILWAY_TOKEN as a project-
+          # deploy token and rejects an API token under that name without
+          # falling through to RAILWAY_API_TOKEN.
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Reason: ${{ steps.classify.outputs.reason }}"
