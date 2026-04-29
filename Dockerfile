@@ -56,8 +56,13 @@ RUN cd web && npm run build && \
 # ---------- Permissions ----------
 # Make install dir world-readable so any HERMES_UID can read it at runtime.
 # The venv needs to be traversable too.
+# Also make /opt/hermes itself owned by hermes so the entrypoint can swap
+# scripts/ and tools/ for symlinks pointing at the volume's git checkout
+# (the restart-without-rebuild flow). Subdirectories were already chowned
+# via COPY --chown=hermes:hermes; this just covers the parent dir.
 USER root
-RUN chmod -R a+rX /opt/hermes
+RUN chmod -R a+rX /opt/hermes && \
+    chown hermes:hermes /opt/hermes
 # Start as root so the entrypoint can usermod/groupmod + gosu.
 # If HERMES_UID is unset, the entrypoint drops to the default hermes user (10000).
 

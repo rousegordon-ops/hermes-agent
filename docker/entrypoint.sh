@@ -173,13 +173,21 @@ if [ -n "${GITHUB_TOKEN:-}" ]; then
         # cloned repo, which the entrypoint refreshes from origin/main on
         # every boot. Watcher pushes -> GitHub -> next restart picks up
         # via these symlinks.
+        # Defensive: any failure here is logged but does not crash the
+        # boot. Without this guard the gateway crash-loops on perms.
         for subdir in scripts tools; do
             if [ -d "$SRC_DIR/$subdir" ]; then
                 if [ -d "$INSTALL_DIR/$subdir" ] && [ ! -L "$INSTALL_DIR/$subdir" ]; then
-                    rm -rf "$INSTALL_DIR/$subdir"
+                    if ! rm -rf "$INSTALL_DIR/$subdir" 2>/dev/null; then
+                        echo "[entrypoint] WARNING: cannot remove $INSTALL_DIR/$subdir (perms?); leaving as-is, daemons will use image-baked copy"
+                        continue
+                    fi
                 fi
-                ln -sfn "$SRC_DIR/$subdir" "$INSTALL_DIR/$subdir"
-                echo "[entrypoint] Linked $INSTALL_DIR/$subdir -> $SRC_DIR/$subdir"
+                if ln -sfn "$SRC_DIR/$subdir" "$INSTALL_DIR/$subdir" 2>/dev/null; then
+                    echo "[entrypoint] Linked $INSTALL_DIR/$subdir -> $SRC_DIR/$subdir"
+                else
+                    echo "[entrypoint] WARNING: cannot create symlink at $INSTALL_DIR/$subdir; skipping"
+                fi
             fi
         done
 
