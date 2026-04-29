@@ -180,6 +180,20 @@ else
     echo "[entrypoint] GITHUB_TOKEN not set — source watcher disabled (skill changes won't auto-commit to GitHub)"
 fi
 
+# ---------- Daily cost report daemon ----------
+# Sends an OpenRouter spend summary to TELEGRAM_HOME_CHANNEL every morning
+# at COST_REPORT_HOUR (default 6 AM America/Los_Angeles). Pure Python — no
+# LLM in the loop. Quietly skipped if any required env var is missing.
+COST_DAEMON="$INSTALL_DIR/scripts/cost_report_daemon.py"
+if [ -f "$COST_DAEMON" ] && [ -n "${OPENROUTER_API_KEY:-}" ] && \
+   [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_HOME_CHANNEL:-}" ]; then
+    python3 "$COST_DAEMON" >> "$HERMES_HOME/cost-report-daemon.log" 2>&1 &
+    echo "[entrypoint] Spawned cost_report_daemon (pid $!)"
+else
+    [ -f "$COST_DAEMON" ] && \
+        echo "[entrypoint] cost_report_daemon disabled (need OPENROUTER_API_KEY + TELEGRAM_BOT_TOKEN + TELEGRAM_HOME_CHANNEL)"
+fi
+
 # Final exec: two supported invocation patterns.
 #
 #   docker run <image>                 -> exec `hermes` with no args (legacy default)
