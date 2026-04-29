@@ -751,6 +751,10 @@ Optional body.
 
 Types: `fix:`, `feat:`, `refactor:`, `docs:`, `chore:`
 
+### Gateway Metrics & Cost Report
+
+The daily cost report (`scripts/cost_report.py`) sends balance + spend + request metrics to Telegram. Request tracking uses a local JSONL log appended by a gateway hook — OpenRouter's analytics API requires a management key most users don't have. See `references/gateway-request-tracking.md` for the full pattern (hook location, JSONL schema, sliding-window algorithm, data sources considered).
+
 ### Key Rules
 
 - **Never break prompt caching** — don't change context, tools, or system prompt mid-conversation
