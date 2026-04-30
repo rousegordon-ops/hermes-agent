@@ -47,6 +47,11 @@ WATCHER_PUSH_RETRIES = int(os.environ.get("SOURCE_WATCHER_PUSH_RETRIES", "3"))
 
 COMMIT_SUBJECT_FILE_LIMIT = 6
 
+# Telegram notification config — used to alert the operator when a push
+# touches code that requires a restart (Bucket 2) or rebuild (Bucket 3).
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_HOME_CHANNEL = os.environ.get("TELEGRAM_HOME_CHANNEL", "").strip()
+
 
 def log(msg: str) -> None:
     print(f"[source-watcher] {msg}", flush=True)
@@ -100,6 +105,117 @@ def make_commit_message(files: list[str]) -> str:
     return f"{subject}\n\nFiles:\n{body}\n"
 
 
+# ---------------------------------------------------------------------------
+# Bucket classification + Telegram notification
+# ---------------------------------------------------------------------------
+# After a successful push, classify the changed files into action buckets
+# and notify the operator via Telegram for Bucket 2 (restart needed) or
+# Bucket 3 (rebuild needed). Bucket 1 changes (skills/docs/on-demand
+# scripts) need no notification — they're already live via symlinks.
+#
+# The watcher does NOT autonomously trigger Railway. The operator reads
+# the notification, then asks Hermes to invoke self-restart or
+# self-rebuild — which keeps human approval on every cost-incurring or
+# downtime-incurring action.
+
+# File-path → bucket mapping. First match wins; Bucket 3 is checked
+# before Bucket 2 (rebuild covers everything restart would cover).
+_BUCKET_3_PREFIXES = (
+    "Dockerfile",
+    "docker/",
+    "pyproject.toml",
+    "package.json",
+    "package-lock.json",
+    "uv.lock",
+    "requirements",   # requirements.txt, requirements-*.txt
+    "MANIFEST.in",
+    "setup.py",
+    "setup.cfg",
+)
+
+_BUCKET_2_PREFIXES = (
+    "tools/",
+    "gateway/",
+    "cron/",
+    "scripts/source_watcher.py",
+    "scripts/cost_report_daemon.py",
+    "hermes_",          # hermes_state.py, hermes_constants.py, hermes_logging.py, ...
+    "hermes_cli/",
+    "cli.py",
+    "run_agent.py",
+    "mcp_serve.py",
+)
+
+
+def classify_bucket(files: list[str]) -> int:
+    """Return the highest action bucket touched by the file list.
+
+    3 = rebuild required (Dockerfile / deps)
+    2 = restart required (gateway / tools / long-running daemons)
+    1 = no action needed (skills / docs / on-demand scripts)
+    """
+    bucket = 1
+    for f in files:
+        for pat in _BUCKET_3_PREFIXES:
+            if f == pat or f.startswith(pat):
+                return 3
+        for pat in _BUCKET_2_PREFIXES:
+            if f == pat or f.startswith(pat):
+                bucket = max(bucket, 2)
+                break
+    return bucket
+
+
+def notify_telegram(message: str) -> None:
+    """Send a message to TELEGRAM_HOME_CHANNEL. Defensive — never raises."""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_HOME_CHANNEL:
+        log("telegram not configured; skipping notification")
+        return
+    try:
+        import json as _json  # noqa: F401  (kept for local tooling)
+        import urllib.parse
+        import urllib.request
+        data = urllib.parse.urlencode({
+            "chat_id": TELEGRAM_HOME_CHANNEL,
+            "text": message,
+            "parse_mode": "HTML",
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data=data,
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            r.read()
+    except Exception as err:
+        # Notification failure must not break the push loop.
+        log(f"telegram notify failed: {err}")
+
+
+def format_bucket_notification(bucket: int, files: list[str]) -> str:
+    """Build the operator-facing Telegram message for a Bucket 2 or 3 push."""
+    listed = files[:8]
+    file_lines = "\n  ".join(f"<code>{f}</code>" for f in listed)
+    if len(files) > len(listed):
+        file_lines += f"\n  <i>(+{len(files) - len(listed)} more)</i>"
+    if bucket == 2:
+        return (
+            "🔄 <b>Restart needed</b>\n"
+            "Hermes edited code that requires a container restart "
+            "(~30s, no rebuild cost):\n"
+            f"  {file_lines}\n\n"
+            "Tell me to restart and I'll invoke the self-restart skill."
+        )
+    if bucket == 3:
+        return (
+            "🔨 <b>Rebuild needed</b>\n"
+            "Hermes edited image-baked code or dependencies — "
+            "requires a Railway image rebuild (~$0.11, ~10 min):\n"
+            f"  {file_lines}\n\n"
+            "Tell me to rebuild and I'll invoke the self-rebuild skill."
+        )
+    return ""
+
+
 def commit_and_push() -> bool:
     files = changed_files(porcelain_status())
     if not files:
@@ -123,6 +239,19 @@ def commit_and_push() -> bool:
         try:
             git("push", "origin", "main")
             log(f"committed + pushed {len(files)} file(s)")
+            # Classify and notify the operator if the push touched
+            # Bucket 2 (restart needed) or Bucket 3 (rebuild needed).
+            try:
+                bucket = classify_bucket(files)
+                if bucket >= 2:
+                    msg = format_bucket_notification(bucket, files)
+                    if msg:
+                        notify_telegram(msg)
+                        log(f"notified operator: bucket {bucket} change")
+                else:
+                    log("bucket 1 change — no notification")
+            except Exception as exc:
+                log(f"bucket-notify hook crashed (non-fatal): {exc}")
             return True
         except subprocess.CalledProcessError as err:
             stderr = (err.stderr or "").strip()
