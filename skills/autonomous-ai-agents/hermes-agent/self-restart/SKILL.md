@@ -80,9 +80,25 @@ The mutation name was renamed (e.g. `serviceInstanceRedeploy` → `deploymentRed
 ### Mode C — "Not Authorized" (INTERNAL_SERVER_ERROR)
 The GraphQL API accepts the request but the token lacks the specific `serviceInstanceRedeploy` permission.
 - Symptom: HTTP 200 response with `{"errors": [{"message": "Not Authorized", "extensions": {"code": "INTERNAL_SERVER_ERROR"}}]}`
-- Distinguishes from Mode A (403) and Mode B ("Cannot query field")
-- Fix: Generate a new token at https://railway.app/account with `read` + `write` scopes; update `RAILWAY_API_TOKEN` in Railway project settings. Container must be **rebuilt** (not just restarted) to pick up the new token env var.
-- Note: Changing the token in the Railway dashboard while the container is running has NO effect — env vars are snapshot at container startup. A rebuild or manual redeploy is required before the new token is visible inside the container.
+- Distinguishes from Mode A (403 direct) and Mode B ("Cannot query field")
+- Three distinct sub-causes — check in order:
+
+  **C1 — Wrong project token**: Token belongs to a different Railway project.
+  - Verify: introspection works (164 mutations visible) but `project(id:)` query returns Not Authorized
+  - Fix: get a token from **Settings → API Tokens** of the **correct** project
+
+  **C2 — Account not a project member**: Owning account is not a collaborator on the project.
+  - Verify: project query returns Not Authorized even with the correct project token
+  - Fix: **Settings → Members** → invite the account that owns the token; acceptance required; role must be Admin or Developer (not Viewer)
+
+  **C3 — Token missing scopes**: Token is from the right project/account but lacks permissions.
+  - Verify: token belongs to correct project AND account is a member with Admin/Developer role, but still fails
+  - Fix: regenerate token at https://railway.app/account with `read` + `write` scopes
+
+- A new `RAILWAY_API_TOKEN` requires a **manual dashboard redeploy** to take effect — Railway injects env vars at container startup, not dynamically.
+
+### Mode D — Env var changed but container hasn't restarted
+Same as C3 note above — Railway injects env vars at container **startup**. Updating `RAILWAY_API_TOKEN` in the dashboard while the container is running has NO effect. Must manually redeploy via the Railway dashboard.
 
 ### Diagnosing Which Failure Mode
 ## References
