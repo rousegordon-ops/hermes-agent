@@ -259,9 +259,11 @@ fi
 # attached late in the deploy sequence.
 #
 # Override via env vars in Railway dashboard:
-#   HERMES_ENFORCED_MODEL                 — model.default          (default: minimax/minimax-m2.7)
-#   HERMES_ENFORCED_APPROVALS             — approvals.mode         (default: smart)
-#   HERMES_ENFORCED_COMPRESSION_THRESHOLD — compression.threshold  (default: 0.85)
+#   HERMES_ENFORCED_MODEL                 — model.default                          (default: minimax/minimax-m2.7)
+#   HERMES_ENFORCED_APPROVALS             — approvals.mode                         (default: smart)
+#   HERMES_ENFORCED_COMPRESSION_THRESHOLD — compression.threshold                  (default: 0.85)
+#   HERMES_ENFORCED_AUX_TITLE_PROVIDER    — auxiliary.title_generation.provider    (default: minimax)
+#   HERMES_ENFORCED_AUX_TITLE_MODEL       — auxiliary.title_generation.model       (default: MiniMax-M2.7)
 #
 # `hermes config set` is idempotent (no-op if already set). The `|| true`
 # guards prevent any failure from killing the boot.
@@ -279,6 +281,14 @@ if [ -x "$HERMES_BIN" ]; then
         "${HERMES_ENFORCED_COMPRESSION_THRESHOLD:-0.85}" >/dev/null 2>&1 \
         && echo "[entrypoint] Enforced compression.threshold = ${HERMES_ENFORCED_COMPRESSION_THRESHOLD:-0.85}" \
         || echo "[entrypoint] WARNING: failed to enforce compression.threshold"
+    "$HERMES_BIN" config set auxiliary.title_generation.provider \
+        "${HERMES_ENFORCED_AUX_TITLE_PROVIDER:-minimax}" >/dev/null 2>&1 \
+        && echo "[entrypoint] Enforced auxiliary.title_generation.provider = ${HERMES_ENFORCED_AUX_TITLE_PROVIDER:-minimax}" \
+        || echo "[entrypoint] WARNING: failed to enforce auxiliary.title_generation.provider"
+    "$HERMES_BIN" config set auxiliary.title_generation.model \
+        "${HERMES_ENFORCED_AUX_TITLE_MODEL:-MiniMax-M2.7}" >/dev/null 2>&1 \
+        && echo "[entrypoint] Enforced auxiliary.title_generation.model = ${HERMES_ENFORCED_AUX_TITLE_MODEL:-MiniMax-M2.7}" \
+        || echo "[entrypoint] WARNING: failed to enforce auxiliary.title_generation.model"
 fi
 
 # ---------- Startup Telegram notification ----------
