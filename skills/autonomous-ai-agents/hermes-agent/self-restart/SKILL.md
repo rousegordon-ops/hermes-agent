@@ -75,8 +75,16 @@ print(json.dumps(result, indent=2))
 ... (already patched) ...
 
 ### Mode B — "Cannot query field"
-...
+The mutation name was renamed (e.g. `serviceInstanceRedeploy` → `deploymentRedeploy`).
 
+### Mode C — "Not Authorized" (INTERNAL_SERVER_ERROR)
+The GraphQL API accepts the request but the token lacks the specific `serviceInstanceRedeploy` permission.
+- Symptom: HTTP 200 response with `{"errors": [{"message": "Not Authorized", "extensions": {"code": "INTERNAL_SERVER_ERROR"}}]}`
+- Distinguishes from Mode A (403) and Mode B ("Cannot query field")
+- Fix: Generate a new token at https://railway.app/account with `read` + `write` scopes; update `RAILWAY_API_TOKEN` in Railway project settings. Container must be **rebuilt** (not just restarted) to pick up the new token env var.
+- Note: Changing the token in the Railway dashboard while the container is running has NO effect — env vars are snapshot at container startup. A rebuild or manual redeploy is required before the new token is visible inside the container.
+
+### Diagnosing Which Failure Mode
 ## References
 
 - `references/cloudflare-403-urllib.md` — Cloudflare WAF blocks urllib requests without User-Agent (this session's root cause fix)

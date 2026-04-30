@@ -76,8 +76,22 @@ This skill assumes:
   ```bash
   ls -la ~/.git-credentials 2>/dev/null || echo "missing"
   ```
-  If missing, fall back to: `git -C /opt/data/repo push origin main:release-pin` from your local machine, or reconfigure the container's entrypoint to write to the correct path.
 - The watcher daemon is running (otherwise `commit_now()` does nothing — fall back to `git -C /opt/data/repo add -A && git commit -m '…' && git push origin main` from `/opt/data/repo`).
+
+## Git credential failure modes
+
+### Missing GITHUB_TOKEN
+The entrypoint writes credentials only when `GITHUB_TOKEN` is set as a Railway env var. Without it, `~/.git-credentials` is never created and push fails with `fatal: could not read Username`.
+- **Fix option A (recommended):** Add `GITHUB_TOKEN` (GitHub PAT with `repo` scope) to Railway project environment variables. On next deploy, entrypoint writes credentials automatically.
+- **Fix option B (deploy key):** Generate an SSH key pair inside the container, add the public key as a read-write deploy key on GitHub, and configure git to use SSH URLs:
+  ```bash
+  ssh-keygen -t ed25519 -f /opt/data/home/.ssh/id_ed25519 -N "" -C "hermes-railway-deploy"
+  # Add /opt/data/home/.ssh/id_ed25519.pub as deploy key on github.com/rousegordon-ops/hermes-agent
+  git -C /opt/data/repo config core.rewriteRemoteToSSH true  # or set URL directly
+  git -C /opt/data/repo remote set-url origin git@github.com:rousegordon-ops/hermes-agent.git
+  ```
+  The private key persists at `/opt/data/home/.ssh/` across restarts and rebuilds.
+- If neither is set, fall back to pushing from **outside the container** (local machine, CI, or Railway CLI) as a manual step.
 
 If any of these aren't set, stop and tell me — don't try to provision them yourself.
 
