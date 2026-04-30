@@ -250,6 +250,22 @@ if [ -x "$HERMES_BIN" ]; then
         || echo "[entrypoint] WARNING: failed to enforce compression.threshold"
 fi
 
+# ---------- Startup Telegram notification ----------
+# Tell the operator the container is back online after every restart
+# or rebuild. Best-effort: if Telegram env isn't set or the API call
+# fails, we just log and continue.
+if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_HOME_CHANNEL:-}" ]; then
+    if curl -fsS -m 10 -X POST \
+        "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+        --data-urlencode "chat_id=${TELEGRAM_HOME_CHANNEL}" \
+        --data-urlencode "text=👋 I'm back!" \
+        >/dev/null 2>&1; then
+        echo "[entrypoint] Sent startup Telegram notification"
+    else
+        echo "[entrypoint] WARNING: startup Telegram notification failed"
+    fi
+fi
+
 # Final exec: two supported invocation patterns.
 #
 #   docker run <image>                 -> exec `hermes` with no args (legacy default)
