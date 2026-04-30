@@ -32,7 +32,10 @@ REQUEST_LOG_PATH = os.environ.get("REQUEST_LOG_PATH", "/opt/data/request-log.jso
 def get_openrouter_balance(api_key: str) -> float:
     req = urllib.request.Request(
         "https://openrouter.ai/api/v1/credits",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": "hermes-agent/1.0",
+        },
     )
     with urllib.request.urlopen(req, timeout=15) as r:
         body = json.loads(r.read().decode("utf-8"))
