@@ -60,7 +60,7 @@ body = json.dumps({"query": mutation, "variables": variables}).encode()
 req = urllib.request.Request(
     "https://backboard.railway.app/graphql/v2",
     data=body,
-    headers={"Authorization": f"Bearer {RAILWAY_API_TOKEN}", "Content-Type": "application/json"},
+    headers={"Authorization": f"Bearer {RAILWAY_API_TOKEN}", "Content-Type": "application/json", "User-Agent": "railway-cli/4.44.0"},
     method="POST",
 )
 with urllib.request.urlopen(req, timeout=30) as resp:
@@ -81,11 +81,15 @@ Railway has renamed GraphQL mutations historically. Two distinct failure modes a
 The token lacks `backboard` scope, or is a deploy-token rather than an account-level API token. Cloudflare returns this before Railway's API sees the request.
 - Verify: the introspection query also fails with 403
 - Fix: generate a new token at https://railway.app/account with `read` + `write` scopes; update `RAILWAY_API_TOKEN` in Railway project settings
+- **Also**: Cloudflare requires a `User-Agent` header that looks like a real browser/CLI client. Python's urllib sends no User-Agent by default and gets 403. Always include `User-Agent: railway-cli/4.44.0` (or similar) in the request headers.
 
 **Mode B — "Cannot query field":**
 The mutation name was renamed (e.g. `serviceInstanceRedeploy` → `deploymentRedeploy`).
 
-**In either case, first run introspection to diagnose:**
+### Diagnosing Which Failure Mode
+
+1. **Try the redeploy mutation first** (the code above).
+2. **If it fails with 403**, run the introspection probe:
 ```bash
 python3 -c "
 import os, urllib.request, json
@@ -105,4 +109,14 @@ for f in result.get('data', {}).get('__schema', {}).get('mutationType', {}).get(
         print(f['name'])
 "
 ```
-Use whichever name shows up and retry. Tell the user about the rename so the skill can be updated.
+
+3. **Interpret the result:**
+   - **Introspection also 403s** → **Mode A** (bad token). The introspection probe itself will 403, so you cannot use it to discover a renamed mutation. Generate a new account-level token.
+   - **Introspection returns fields but redeploy fails with "Cannot query field"** → **Mode B** (mutation renamed). Use the name from introspection.
+   - **Introspection returns 200 but no redeploy field** → Railway may have removed the redeploy mutation entirely; check Railway docs or use the Railway CLI from outside the container instead.
+
+### Container tool limitations
+
+This Railway container has **no `curl` or `wget`** — only Python stdlib `urllib`. The 403 cannot be bypassed with alternate HTTP clients. If stdlib urllib is blocked by Cloudflare and a token fix is not possible, fall back to:
+- Railway CLI run from outside the container: `railway redeploy`
+- Railway dashboard: manual redeploy button at railway.app
