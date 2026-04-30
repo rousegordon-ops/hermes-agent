@@ -85,17 +85,18 @@ The GraphQL API accepts the request but the token lacks the specific `serviceIns
 
   **C1 — Wrong project token**: Token belongs to a different Railway project.
   - Verify: introspection works (164 mutations visible) but `project(id:)` query returns Not Authorized
-  - Fix: get a token from **Settings → API Tokens** of the **correct** project
+  - Fix: get a token from **Settings → API Tokens** of the **correct** project (`pretty-amazement`)
 
   **C2 — Account not a project member**: Owning account is not a collaborator on the project.
   - Verify: project query returns Not Authorized even with the correct project token
-  - Fix: **Settings → Members** → invite the account that owns the token; acceptance required; role must be Admin or Developer (not Viewer)
+  - Fix: **Settings → Members** → invite the account that owns the token; acceptance required; role must be Admin or Developer (not Viewer). A "pending" invite means the account is NOT yet a member.
+  - **Confirmed fix this session**: invite the same account that owns the token; accept fully; role confirmed as Developer.
 
   **C3 — Token missing scopes**: Token is from the right project/account but lacks permissions.
   - Verify: token belongs to correct project AND account is a member with Admin/Developer role, but still fails
   - Fix: regenerate token at https://railway.app/account with `read` + `write` scopes
 
-- A new `RAILWAY_API_TOKEN` requires a **manual dashboard redeploy** to take effect — Railway injects env vars at container startup, not dynamically.
+- **NEW env var value requires dashboard redeploy**: Railway injects env vars at container **startup**, not dynamically. Updating `RAILWAY_API_TOKEN` in the Railway dashboard while the container is running has NO effect — the running container still has the old value. Must manually redeploy via the Railway dashboard Deployments tab (Restart or Redeploy button).
 
 ### Mode D — Env var changed but container hasn't restarted
 Same as C3 note above — Railway injects env vars at container **startup**. Updating `RAILWAY_API_TOKEN` in the dashboard while the container is running has NO effect. Must manually redeploy via the Railway dashboard.

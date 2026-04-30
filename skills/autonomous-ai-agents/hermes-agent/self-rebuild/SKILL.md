@@ -21,7 +21,7 @@ Trigger a full Railway image rebuild. Required when image-baked code or dependen
 - AND the user has given **explicit confirmation** (see below).
 
 **Bucket quick-ref:**
-- Bucket 1 (no action): `skills/**`, `*.md`, `docs/**`, `scripts/cost_report.py`
+- Bucket 1 (no action): `skills/**`, `*.md`, `docs/**`, `scripts/cost_report.py` (NOTE: cost_report.py is NOT bucket-indexed — it's a daemon script, not gateway code; edits take effect on next daemon restart, no redeploy needed)
 - Bucket 2 (self-restart): `tools/**`, `gateway/**`, `scripts/source_watcher.py`, `scripts/cost_report_daemon.py`, top-level `*.py`
 - Bucket 3 (self-rebuild): `Dockerfile`, `docker/**`, `pyproject.toml`, `package*.json`, `requirements*.txt`, `uv.lock`
 
