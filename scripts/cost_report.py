@@ -150,9 +150,9 @@ def prune_old_entries(days_to_keep: int = 7) -> None:
 def format_report(metrics: dict, prev_metrics: dict | None) -> str:
     now = datetime.now(PT).strftime("%Y-%m-%d %I:%M %p PT")
     lines = [
-        "<b>📊 Request Metrics (24H)</b>",
-        f"  API Requests: <b>{metrics['total_requests_24h']}</b>",
+        "<b>📊 Usage Report (24H)</b>",
         f"  User Interactions: <b>{metrics['interactions_24h']}</b>",
+        f"  API Requests: <b>{metrics['total_requests_24h']}</b>",
         f"  Max Requests / 5h Window: <b>{metrics['max_requests_5h']}</b>",
     ]
 
