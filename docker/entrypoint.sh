@@ -228,8 +228,9 @@ fi
 # attached late in the deploy sequence.
 #
 # Override via env vars in Railway dashboard:
-#   HERMES_ENFORCED_MODEL     — model.default     (default: minimax/minimax-m2.7)
-#   HERMES_ENFORCED_APPROVALS — approvals.mode    (default: smart)
+#   HERMES_ENFORCED_MODEL                 — model.default          (default: minimax/minimax-m2.7)
+#   HERMES_ENFORCED_APPROVALS             — approvals.mode         (default: smart)
+#   HERMES_ENFORCED_COMPRESSION_THRESHOLD — compression.threshold  (default: 0.85)
 #
 # `hermes config set` is idempotent (no-op if already set). The `|| true`
 # guards prevent any failure from killing the boot.
@@ -243,6 +244,10 @@ if [ -x "$HERMES_BIN" ]; then
         "${HERMES_ENFORCED_APPROVALS:-smart}" >/dev/null 2>&1 \
         && echo "[entrypoint] Enforced approvals.mode = ${HERMES_ENFORCED_APPROVALS:-smart}" \
         || echo "[entrypoint] WARNING: failed to enforce approvals.mode"
+    "$HERMES_BIN" config set compression.threshold \
+        "${HERMES_ENFORCED_COMPRESSION_THRESHOLD:-0.85}" >/dev/null 2>&1 \
+        && echo "[entrypoint] Enforced compression.threshold = ${HERMES_ENFORCED_COMPRESSION_THRESHOLD:-0.85}" \
+        || echo "[entrypoint] WARNING: failed to enforce compression.threshold"
 fi
 
 # Final exec: two supported invocation patterns.
