@@ -69,6 +69,18 @@ with urllib.request.urlopen(req, timeout=30) as resp:
 print(json.dumps(result, indent=2))
 ```
 
+## Known Failure Modes
+
+### Mode A — HTTP 403 from Cloudflare (code 1010 "Access denied")
+... (already patched) ...
+
+### Mode B — "Cannot query field"
+...
+
+## References
+
+- `references/cloudflare-403-urllib.md` — Cloudflare WAF blocks urllib requests without User-Agent (this session's root cause fix)
+
 ## Verification
 
 Print the raw API response verbatim. Tell the user clearly: **"Restarting now — your message will be answered by the new container in ~30s."**

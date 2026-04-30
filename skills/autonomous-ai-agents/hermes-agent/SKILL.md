@@ -627,6 +627,17 @@ hermes config set auxiliary.vision.provider <your_provider>
 hermes config set auxiliary.vision.model <model_name>
 ```
 
+### External API calls returning 403 from Railway containers
+Cloudflare's WAF blocks `urllib` requests without a `User-Agent` header (Python sends none by default).
+Both `cost_report.py` and the Railway `self-restart` skill were failing with 403 until we added:
+```python
+headers={
+    "Authorization": f"Bearer {api_key}",
+    "User-Agent": "railway-cli/4.44.0",  # or "hermes-agent/1.0"
+}
+```
+See `self-restart/references/cloudflare-403-urllib.md` for full details.
+
 ---
 
 ## Where to Find Things
