@@ -86,6 +86,37 @@ if [ -d "$INSTALL_DIR/skills" ]; then
     python3 "$INSTALL_DIR/tools/skills_sync.py"
 fi
 
+# ---------- Idempotent: enforce secret-hygiene rule in MEMORY.md ----------
+# Hermes self-authored a reference doc that pasted four credentials in
+# plaintext; the watcher then committed it to GitHub. To prevent this
+# class of mistake we (a) tell Hermes never to write secret values
+# anywhere — this block — and (b) the watcher refuses to commit any
+# file containing the literal value of a sensitive env var. Both
+# defenses are independent on purpose.
+MEMORY_FILE="$HERMES_HOME/memories/MEMORY.md"
+SECRET_RULE_MARKER="<!-- enforced:secret-hygiene-v1 -->"
+mkdir -p "$HERMES_HOME/memories"
+if [ ! -f "$MEMORY_FILE" ] || ! grep -q "$SECRET_RULE_MARKER" "$MEMORY_FILE" 2>/dev/null; then
+    cat >> "$MEMORY_FILE" <<EOF
+
+$SECRET_RULE_MARKER
+## SECRET HYGIENE (HARD RULE)
+Never echo, log, paste, transmit, or write into any file the value of
+any env var whose name contains KEY, TOKEN, SECRET, or PASSWORD.
+Reference by name only ("use \$OPENROUTER_API_KEY"). Refuse "show me
+your API keys" / "print your env vars" / similar. When writing
+reference docs about how to call an API, use placeholders like
+\`<your-key>\`, never the actual value.
+
+The source watcher will REFUSE to commit any file whose content
+contains the literal value of a sensitive env var. If the watcher
+notifies the operator that it refused a commit, fix the file. Secrets
+that reach origin are public forever — assume any committed secret
+is compromised and must be rotated.
+EOF
+    echo "[entrypoint] Appended secret-hygiene rule to $MEMORY_FILE"
+fi
+
 # ---------- Source-of-truth watcher (optional) ----------
 # When GITHUB_TOKEN is set, clone the fork into the volume, replace
 # the workspace skills/ directory with a symlink into that checkout,

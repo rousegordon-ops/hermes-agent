@@ -29,6 +29,7 @@ Ported from GordonClaw's source_watcher.py with path adjustments.
 """
 
 import os
+import re
 import subprocess
 import sys
 import time
@@ -216,11 +217,72 @@ def format_bucket_notification(bucket: int, files: list[str]) -> str:
     return ""
 
 
+_SENSITIVE_NAME_RE = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD)", re.IGNORECASE)
+_MIN_SECRET_LEN = 16  # ignore short env values to avoid false positives
+
+
+def scan_for_secret_leaks(files: list[str]) -> list[tuple[str, str]]:
+    """Refuse-to-commit defense.
+
+    Walks the changed-file list and checks whether any file's content
+    contains the literal value of an env var whose name suggests a
+    secret (KEY/TOKEN/SECRET/PASSWORD). Catches the failure mode where
+    the bot writes a credential into a doc/skill file by mistake — the
+    case that just exposed all our keys publicly via origin/main.
+
+    Returns a list of (file_path, env_var_name) tuples. Empty = clean.
+    """
+    sensitive = [
+        (k, v.strip())
+        for k, v in os.environ.items()
+        if _SENSITIVE_NAME_RE.search(k) and len(v.strip()) >= _MIN_SECRET_LEN
+    ]
+    if not sensitive:
+        return []
+    leaks: list[tuple[str, str]] = []
+    for rel in files:
+        path = os.path.join(SRC_DIR, rel)
+        if not os.path.isfile(path):
+            continue  # deleted or directory
+        try:
+            with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+                content = fh.read()
+        except OSError:
+            continue
+        for name, val in sensitive:
+            if val and val in content:
+                leaks.append((rel, name))
+    return leaks
+
+
 def commit_and_push() -> bool:
     files = changed_files(porcelain_status())
     if not files:
         log("commit_and_push called but tree is clean; skipping")
         return True
+
+    leaks = scan_for_secret_leaks(files)
+    if leaks:
+        leak_lines = "\n".join(
+            f"  <code>{path}</code> contains <code>${name}</code>"
+            for path, name in leaks[:8]
+        )
+        more = ""
+        if len(leaks) > 8:
+            more = f"\n  <i>(+{len(leaks) - 8} more)</i>"
+        log(
+            f"REFUSING to commit — {len(leaks)} secret leak(s) detected: "
+            + ", ".join(f"{p}:${n}" for p, n in leaks[:5])
+        )
+        notify_telegram(
+            "🚫 <b>Watcher refused to commit — secret leak detected</b>\n"
+            f"{leak_lines}{more}\n\n"
+            "Fix the file(s) so they no longer contain the literal "
+            "secret value, then the watcher will retry on the next poll. "
+            "If the secret has already been committed in earlier history, "
+            "rotate it immediately."
+        )
+        return False
 
     try:
         git("add", "-A")
