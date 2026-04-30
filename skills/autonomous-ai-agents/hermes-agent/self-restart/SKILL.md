@@ -72,3 +72,17 @@ print(json.dumps(result, indent=2))
 ## Verification
 
 Print the raw API response verbatim. Tell the user clearly: **"Restarting now — your message will be answered by the new container in ~30s."**
+
+## If the mutation fails
+
+Railway has renamed GraphQL mutations historically. If the redeploy call returns "Cannot query field" or similar, discover the current mutation name via introspection:
+
+```bash
+curl -s -X POST https://backboard.railway.app/graphql/v2 \
+  -H "Authorization: Bearer $RAILWAY_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ __schema { mutationType { fields { name } } } }"}' \
+  | grep -i redeploy
+```
+
+Use whichever name shows up (e.g. serviceInstanceRedeploy, deploymentRedeploy) and retry. Tell the user about the rename so I can update the skill to use the new name.

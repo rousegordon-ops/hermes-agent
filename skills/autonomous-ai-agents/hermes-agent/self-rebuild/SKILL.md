@@ -46,6 +46,14 @@ from source_watcher import commit_now
 commit_now()
 ```
 
+### Step 1.5 — Verify the commit landed on origin/main
+
+```bash
+git -C /opt/data/repo log origin/main -1 --oneline
+```
+
+The HEAD line should be the auto-commit you just made (or the watcher's just-pushed commit). If it shows an older commit, your push to release-pin in the next step will deploy stale code — investigate before continuing.
+
 ### Step 2 — Push main to release-pin
 
 ```bash
@@ -59,6 +67,15 @@ This triggers a Railway image rebuild because Railway watches the `release-pin` 
 - Rebuilds cost ~$0.11 in build minutes and take ~10 minutes.
 - The rebuild can fail (broken Dockerfile, bad deps) leaving the service in a broken state.
 - After triggering, tell the user: **"Rebuild triggered — service will be down for ~10 min. Monitor at https://railway.app/project/pretty-amazement"**
+
+## Required env / setup
+
+This skill assumes:
+- `$RAILWAY_API_TOKEN` is set (verify with `[ -n "$RAILWAY_API_TOKEN" ]`). Not used directly here, but its presence indicates the operator has configured the container for self-management.
+- Git auth is configured (entrypoint writes `~/.git-credentials` from `$GITHUB_TOKEN`). Verify with `cat ~/.git-credentials | head -c 30` if there's any doubt.
+- The watcher daemon is running (otherwise `commit_now()` does nothing — fall back to `manual git add -A && git commit -m '…' && git push origin main` from `/opt/data/repo`).
+
+If any of these aren't set, stop and tell me — don't try to provision them yourself.
 
 ## Verification
 
