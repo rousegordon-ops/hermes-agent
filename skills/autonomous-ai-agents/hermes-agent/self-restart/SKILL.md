@@ -75,14 +75,34 @@ Print the raw API response verbatim. Tell the user clearly: **"Restarting now �
 
 ## If the mutation fails
 
-Railway has renamed GraphQL mutations historically. If the redeploy call returns "Cannot query field" or similar, discover the current mutation name via introspection:
+Railway has renamed GraphQL mutations historically. Two distinct failure modes are known:
 
+**Mode A — HTTP 403 from Cloudflare (code 1010 "Access denied"):**
+The token lacks `backboard` scope, or is a deploy-token rather than an account-level API token. Cloudflare returns this before Railway's API sees the request.
+- Verify: the introspection query also fails with 403
+- Fix: generate a new token at https://railway.app/account with `read` + `write` scopes; update `RAILWAY_API_TOKEN` in Railway project settings
+
+**Mode B — "Cannot query field":**
+The mutation name was renamed (e.g. `serviceInstanceRedeploy` → `deploymentRedeploy`).
+
+**In either case, first run introspection to diagnose:**
 ```bash
-curl -s -X POST https://backboard.railway.app/graphql/v2 \
-  -H "Authorization: Bearer $RAILWAY_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ __schema { mutationType { fields { name } } } }"}' \
-  | grep -i redeploy
+python3 -c "
+import os, urllib.request, json
+token = os.environ.get('RAILWAY_API_TOKEN')
+query = '{\"query\":\"{ __schema { mutationType { fields { name } } } }\"}'
+body = query.encode()
+req = urllib.request.Request(
+    'https://backboard.railway.app/graphql/v2',
+    data=body,
+    headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+    method='POST',
+)
+with urllib.request.urlopen(req, timeout=30) as resp:
+    result = json.loads(resp.read())
+for f in result.get('data', {}).get('__schema', {}).get('mutationType', {}).get('fields', []):
+    if 'redeploy' in f['name'].lower():
+        print(f['name'])
+"
 ```
-
-Use whichever name shows up (e.g. serviceInstanceRedeploy, deploymentRedeploy) and retry. Tell the user about the rename so I can update the skill to use the new name.
+Use whichever name shows up and retry. Tell the user about the rename so the skill can be updated.

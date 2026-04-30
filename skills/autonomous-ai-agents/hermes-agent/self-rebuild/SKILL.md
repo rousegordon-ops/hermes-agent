@@ -72,8 +72,12 @@ This triggers a Railway image rebuild because Railway watches the `release-pin` 
 
 This skill assumes:
 - `$RAILWAY_API_TOKEN` is set (verify with `[ -n "$RAILWAY_API_TOKEN" ]`). Not used directly here, but its presence indicates the operator has configured the container for self-management.
-- Git auth is configured (entrypoint writes `~/.git-credentials` from `$GITHUB_TOKEN`). Verify with `cat ~/.git-credentials | head -c 30` if there's any doubt.
-- The watcher daemon is running (otherwise `commit_now()` does nothing — fall back to `manual git add -A && git commit -m '…' && git push origin main` from `/opt/data/repo`).
+- Git auth is configured: the entrypoint writes `~/.git-credentials` from `$GITHUB_TOKEN`, but this has a **path caveat** — if running as the `hermes` user, `~` expands to `/home/hermes` which does not exist, so the file is never found. Verify with:
+  ```bash
+  ls -la ~/.git-credentials 2>/dev/null || echo "missing"
+  ```
+  If missing, fall back to: `git -C /opt/data/repo push origin main:release-pin` from your local machine, or reconfigure the container's entrypoint to write to the correct path.
+- The watcher daemon is running (otherwise `commit_now()` does nothing — fall back to `git -C /opt/data/repo add -A && git commit -m '…' && git push origin main` from `/opt/data/repo`).
 
 If any of these aren't set, stop and tell me — don't try to provision them yourself.
 
