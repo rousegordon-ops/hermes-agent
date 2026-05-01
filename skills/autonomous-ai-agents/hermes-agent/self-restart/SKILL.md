@@ -110,9 +110,29 @@ Same as C3 note above — Railway injects env vars at container **startup**. Upd
 
 Print the raw API response verbatim. Tell the user clearly: **"Restarting now — your message will be answered by the new container in ~30s."**
 
+## Mode C — Token from Wrong Project (Not Authorized on data queries)
+
+The token can reach the API (introspection works) but returns "Not Authorized" on any data mutation or query.
+
+**Diagnosis:** Run introspection — if it succeeds, the token is valid but lacks project access:
+```python
+# Introspection succeeds: shows 164 mutation fields including serviceInstanceRedeploy
+# But project queries/mutations fail: "Not Authorized"
+```
+
+**Root cause:** The Railway account the token belongs to is not a member of the `pretty-amazement` project — even if the invite was sent and "accepted", if it shows as "pending" in project settings, the token has no access.
+
+**Fix:**
+1. Go to Railway dashboard → project → **Settings → Members**
+2. Verify your account is listed as **Admin** or **Developer** (not Viewer, not Pending)
+3. If invite shows as pending: revoke and re-invite, accept while logged into the correct account
+4. Redeploy/restart the container from Railway dashboard so it picks up fresh env vars
+
+**Why restart is needed:** Railway injects env vars at container start. Changing the token in the dashboard doesn't affect a running container.
+
 ## If the mutation fails
 
-Railway has renamed GraphQL mutations historically. Two distinct failure modes are known:
+Railway has renamed GraphQL mutations historically. Three distinct failure modes are known:
 
 **Mode A — HTTP 403 from Cloudflare (code 1010 "Access denied"):**
 The token lacks `backboard` scope, or is a deploy-token rather than an account-level API token. Cloudflare returns this before Railway's API sees the request.
@@ -151,8 +171,29 @@ for f in result.get('data', {}).get('__schema', {}).get('mutationType', {}).get(
    - **Introspection also 403s** → **Mode A** (bad token). The introspection probe itself will 403, so you cannot use it to discover a renamed mutation. Generate a new account-level token.
    - **Introspection returns fields but redeploy fails with "Cannot query field"** → **Mode B** (mutation renamed). Use the name from introspection.
    - **Introspection returns 200 but no redeploy field** → Railway may have removed the redeploy mutation entirely; check Railway docs or use the Railway CLI from outside the container instead.
+   - **Introspection returns 200 with redeploy field, project queries return "Not Authorized"** → **Mode C** (token not a member of the target project). See Mode C section.
 
-### Container tool limitations
+### Redeploy vs Restart — What's the Difference
+
+The Railway dashboard **Redeploy** button and `serviceInstanceRedeploy` mutation do the same thing: stop the current container and start a new one on the **same image**. They do NOT re-run the entrypoint.
+
+**What survives a redeploy:**
+- Env vars (they're baked into the new container at start, so changing them in Railway dashboard has no effect until next container start)
+- Volume data (`/opt/data/`)
+
+**What is reset on redeploy:**
+- Entry point runs fresh: re-links `scripts/`, `tools/`, `gateway/` from the git checkout at `origin/main` as of the **original boot time** — not current HEAD
+- Self-edits to `/opt/data/repo/` made after container start are **LOST** on redeploy
+
+**What requires a restart (self-restart or dashboard restart):**
+- Picking up edits to `/opt/data/repo/` that were pushed to GitHub
+- Picking up new env var values
+- Re-running the entrypoint fresh
+
+**What requires a rebuild (push to release-pin):**
+- Changes to Bucket-3 files: `Dockerfile`, `docker/**`, `pyproject.toml`, `package*.json`, `requirements*.txt`, `uv.lock`
+
+## Container tool limitations
 
 This Railway container has **no `curl` or `wget`** — only Python stdlib `urllib`. The 403 cannot be bypassed with alternate HTTP clients. If stdlib urllib is blocked by Cloudflare and a token fix is not possible, fall back to:
 - Railway CLI run from outside the container: `railway redeploy`
