@@ -40,13 +40,20 @@ TELEGRAM_HOME_CHANNEL=<chat_id>
 ```
 
 ### Cron job
-Scheduled at `5 6 * * *` (6:05 AM PT) to send and clear the list.
+Scheduled at `5 13 * * *` (6:05 AM PT = 13:05 UTC) to send and clear the list. Cron job ID: `f4e6ed55cf93`.
 
-## Adding Items
+## Workflow
 
-Gordon says: `todo add <item>` → agent runs the add command.
+### Adding items
+Gordon says: `todo add <item>` → agent runs the add command **and replies with the full updated list** (numbered, like a text snapshot — not HTML/Telegram formatted, just plain text).
+
+### Listing items
+Gordon says: `todo list` → agent runs the list command and replies with the full list (numbered).
 
 ## Pitfalls
+
+### Cron schedule is UTC
+Hermes cron uses UTC times. To fire at 6:05 AM PT (UTC-8 or UTC-7 PDT), the schedule must be `5 13 * * *` (13:05 UTC). A schedule of `5 6 * * *` fires at 6:05 UTC = 10:05 PM PT the prior day — completely wrong. Always verify the UTC equivalent when setting PT schedules.
 
 ### Telegram tokens not in cron subprocess env
 The cron daemon runs without the container's env vars. Always use `todo_wrapper.py` in cron — not `todo_manager.py` directly. The wrapper reads tokens from `/opt/data/.env.tokens`.
