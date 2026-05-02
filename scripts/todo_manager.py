@@ -81,7 +81,9 @@ def main() -> None:
         items.append(item)
         save(items)
         print(f"Added: {item}")
-        print(f"List now has {len(items)} item(s).")
+        print(f"List now has {len(items)} item(s):")
+        for i, it in enumerate(items, 1):
+            print(f"  {i}. {it}")
         return
 
     elif cmd == "clear":
