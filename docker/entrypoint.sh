@@ -236,6 +236,18 @@ else
     echo "[entrypoint] GITHUB_TOKEN not set — source watcher disabled (skill changes won't auto-commit to GitHub)"
 fi
 
+# ---------- Healthcheck HTTP server ----------
+# Railway requires a healthcheck endpoint during deploy verification.
+# Hermes is a Telegram-polling bot with no native HTTP server, so this
+# tiny script binds to $PORT and returns 200 OK on any GET. Configure
+# Railway's healthcheck path to anything (/, /healthz, etc.) — it all
+# 200s.
+HEALTHCHECK_SCRIPT="$INSTALL_DIR/scripts/healthcheck_server.py"
+if [ -f "$HEALTHCHECK_SCRIPT" ]; then
+    python3 "$HEALTHCHECK_SCRIPT" >> "$HERMES_HOME/healthcheck.log" 2>&1 &
+    echo "[entrypoint] Spawned healthcheck server (pid $!)"
+fi
+
 # ---------- Daily cost report daemon ----------
 # Sends an OpenRouter spend summary to TELEGRAM_HOME_CHANNEL every morning
 # at COST_REPORT_HOUR (default 6 AM America/Los_Angeles). Pure Python — no
