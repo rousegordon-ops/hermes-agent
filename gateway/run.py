@@ -8751,7 +8751,7 @@ class GatewayRunner:
             metadata = {"thread_id": thread_id} if thread_id else None
             await adapter.send(
                 chat_id,
-                "♻ Gateway restarted successfully. Your session continues.",
+                "```\nI'm back!\n```",
                 metadata=metadata,
             )
             logger.info(
