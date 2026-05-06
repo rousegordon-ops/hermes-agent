@@ -8732,13 +8732,19 @@ class GatewayRunner:
 
         try:
             data = json.loads(notify_path.read_text())
-            platform_str = data.get("platform")
-            chat_id = data.get("chat_id")
-            thread_id = data.get("thread_id")
+        except Exception:
+            notify_path.unlink(missing_ok=True)
+            return
 
-            if not platform_str or not chat_id:
-                return
+        platform_str = data.get("platform")
+        chat_id = data.get("chat_id")
+        thread_id = data.get("thread_id")
 
+        if not platform_str or not chat_id:
+            notify_path.unlink(missing_ok=True)
+            return
+
+        try:
             platform = Platform(platform_str)
             adapter = self.adapters.get(platform)
             if not adapter:
@@ -8746,6 +8752,7 @@ class GatewayRunner:
                     "Restart notification skipped: %s adapter not connected",
                     platform_str,
                 )
+                notify_path.unlink(missing_ok=True)
                 return
 
             metadata = {"thread_id": thread_id} if thread_id else None
@@ -8759,8 +8766,6 @@ class GatewayRunner:
                 platform_str,
                 chat_id,
             )
-        except Exception as e:
-            logger.warning("Restart notification failed: %s", e)
         finally:
             notify_path.unlink(missing_ok=True)
 
