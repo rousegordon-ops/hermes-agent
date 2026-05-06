@@ -12,10 +12,20 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/hermes/.playwright
 # Install system dependencies in one layer, clear APT cache
 # tini reaps orphaned zombie processes (MCP stdio subprocesses, git, bun, etc.)
 # that would otherwise accumulate when hermes runs as PID 1. See #15012.
+# curl: required by self-restart skill (Railway GraphQL via curl, mirroring
+# GordonClaw's pattern — Python urllib trips tirith's lookalike_tld rule on
+# backboard.railway.app and curl is also handy for any ad-hoc HTTP probe).
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    build-essential nodejs npm python3 ripgrep ffmpeg gcc python3-dev libffi-dev procps git openssh-client docker-cli tini && \
+    build-essential curl nodejs npm python3 ripgrep ffmpeg gcc python3-dev libffi-dev procps git openssh-client docker-cli tini && \
     rm -rf /var/lib/apt/lists/*
+
+# Default tirith rule allowlist. lookalike_tld fires on .app TLD (Railway's
+# backboard.railway.app), turning every self-restart into an approval prompt
+# the user can't make permanent (tirith findings are demoted to session-only
+# in tools/approval.py).  Override with -e TIRITH_IGNORED_RULES=... or empty
+# string to disable.
+ENV TIRITH_IGNORED_RULES=lookalike_tld
 
 # Non-root user for runtime; UID can be overridden via HERMES_UID at runtime
 RUN useradd -u 10000 -m -d /opt/data hermes

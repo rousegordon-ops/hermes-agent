@@ -275,6 +275,14 @@ terminal:
 #   tirith_path: "tirith"       # Path to tirith binary (supports ~ expansion)
 #   tirith_timeout: 5           # Scan timeout in seconds
 #   tirith_fail_open: true      # Allow commands if tirith unavailable
+#   tirith_ignored_rules: []    # Rule IDs to drop from findings. If a command's
+#                               # only findings are all in this list, the verdict
+#                               # is downgraded to allow (no approval prompt).
+#                               # Use when a rule keeps flagging a known-good
+#                               # host/pattern (e.g. lookalike_tld for .app TLDs
+#                               # like backboard.railway.app).
+#                               # Override via TIRITH_IGNORED_RULES env var
+#                               # (comma-separated list).
 
 # =============================================================================
 # Browser Tool Configuration

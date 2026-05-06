@@ -72,6 +72,7 @@ def _load_security_config() -> dict:
         "tirith_path": "tirith",
         "tirith_timeout": 5,
         "tirith_fail_open": True,
+        "tirith_ignored_rules": [],
     }
     try:
         from hermes_cli.config import load_config
@@ -79,11 +80,19 @@ def _load_security_config() -> dict:
     except Exception:
         cfg = {}
 
+    env_rules = os.getenv("TIRITH_IGNORED_RULES")
+    if env_rules is not None:
+        ignored_rules = [r.strip() for r in env_rules.split(",") if r.strip()]
+    else:
+        cfg_rules = cfg.get("tirith_ignored_rules") or defaults["tirith_ignored_rules"]
+        ignored_rules = [str(r).strip() for r in cfg_rules if str(r).strip()]
+
     return {
         "tirith_enabled": _env_bool("TIRITH_ENABLED", cfg.get("tirith_enabled", defaults["tirith_enabled"])),
         "tirith_path": os.getenv("TIRITH_BIN", cfg.get("tirith_path", defaults["tirith_path"])),
         "tirith_timeout": _env_int("TIRITH_TIMEOUT", cfg.get("tirith_timeout", defaults["tirith_timeout"])),
         "tirith_fail_open": _env_bool("TIRITH_FAIL_OPEN", cfg.get("tirith_fail_open", defaults["tirith_fail_open"])),
+        "tirith_ignored_rules": ignored_rules,
     }
 
 
@@ -687,5 +696,23 @@ def check_command_security(command: str) -> dict:
             summary = "security issue detected (details unavailable)"
         elif action == "warn":
             summary = "security warning detected (details unavailable)"
+
+    # Apply rule-allowlist: drop findings whose rule_id is in the ignore list.
+    # If everything was ignorable, downgrade the verdict to "allow" so the
+    # approval prompt is suppressed entirely.  Without this, the verdict from
+    # the exit code stays at "warn"/"block" and the user is prompted on every
+    # invocation — even after picking "always" — because tirith findings are
+    # demoted to session-only approvals in tools/approval.py.
+    ignored_rules = cfg.get("tirith_ignored_rules") or []
+    if ignored_rules and findings:
+        kept = [f for f in findings
+                if (f.get("rule_id") or "") not in ignored_rules]
+        if not kept and action != "allow":
+            logger.debug(
+                "tirith findings all ignored (rules=%s); downgrading %s -> allow",
+                ignored_rules, action,
+            )
+            action = "allow"
+        findings = kept
 
     return {"action": action, "findings": findings, "summary": summary}

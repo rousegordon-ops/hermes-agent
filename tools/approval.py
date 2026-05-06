@@ -885,10 +885,14 @@ def _format_tirith_description(tirith_result: dict) -> str:
         severity = f.get("severity", "")
         title = f.get("title", "")
         desc = f.get("description", "")
+        rule_id = f.get("rule_id", "")
+        rule_suffix = f" (rule: {rule_id})" if rule_id else ""
         if title and desc:
-            parts.append(f"[{severity}] {title}: {desc}" if severity else f"{title}: {desc}")
+            base = f"[{severity}] {title}: {desc}" if severity else f"{title}: {desc}"
+            parts.append(f"{base}{rule_suffix}")
         elif title:
-            parts.append(f"[{severity}] {title}" if severity else title)
+            base = f"[{severity}] {title}" if severity else title
+            parts.append(f"{base}{rule_suffix}")
     if not parts:
         summary = tirith_result.get("summary") or "security issue detected"
         return f"Security scan: {summary}"
