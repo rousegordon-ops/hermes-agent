@@ -46,6 +46,7 @@ python3 /opt/data/skills/productivity/flights/scripts/flights_client.py \
 | `--return YYYY-MM-DD` | *(none — one-way)* | Return date for round-trip |
 | `--adults N` | 1 | Number of adult passengers |
 | `--currency XXX` | USD | Currency code for prices |
+| `--cabin first\|business\|economy` | *(all)* | Cabin class filter |
 
 ### Examples
 
