@@ -15,7 +15,11 @@ metadata:
 
 On every container start, the entrypoint enforces `model.default = MiniMax-M2.7` (set via `HERMES_ENFORCED_MODEL` Railway env var). MiniMax is paid per-token via the configured base URL — bulk-friendly, doesn't touch Pro/Max quota.
 
-`fallback_providers` in `~/.hermes/config.yaml` is configured to fall back to **Sonnet 4.6 (Anthropic OAuth)** automatically if MiniMax fails — rate limit hit, 5xx error, connection timeout. The fallback is **silent**: no user-visible message, just keeps answering. Switch happens inside `agent/run_agent.py`'s fallback loop.
+`fallback_providers` in `~/.hermes/config.yaml` is a two-step chain: **Sonnet 4.6 (Anthropic OAuth)** then **MiniMax-M2.7**. The chain serves two purposes:
+- If MiniMax (default) fails → falls back to Sonnet (Pro/Max OAuth rescue).
+- If the user has manually switched to Sonnet or Opus and that hits a rate limit → falls through Sonnet (one redundant retry when Sonnet is the active model) → lands on MiniMax (paid-tier rescue).
+
+Fallbacks are **silent** — no user-visible message, just keeps answering. Switch happens inside `agent/run_agent.py`'s fallback loop.
 
 `auxiliary.compression.{provider,model}` is pinned to `gemini` / `gemini-3-flash` (using `GEMINI_API_KEY`). Compaction uses Gemini's large context window, so summarization is robust regardless of which main model is active — even after a fallback to a smaller-context model, compaction still succeeds.
 
