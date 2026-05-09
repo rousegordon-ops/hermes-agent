@@ -578,7 +578,13 @@ This is especially useful for verifying:
 
 If verification is limited by environment, say exactly what was and was not verified.
 
-Never say "done" if the file was not actually written.
+### Delivering HTML artifacts when the user can't reach container paths
+
+If the container filesystem is not directly accessible from the user's machine, deliver the HTML as a code block (```html ...```) rather than a path. The user copies it, saves as `.html`, and opens locally. This is the default delivery mode unless the user has direct container access.
+
+Keep code blocks tidy — validate the HTML structure before posting. Do not paste broken or truncated HTML.
+
+If the artifact is large or the user frequently needs HTML delivery, consider writing to `/tmp/<name>.html` as a staging point and presenting the path in the chat response as well as the code block.
 
 ## Final Response Format
 
