@@ -578,17 +578,43 @@ This is especially useful for verifying:
 
 If verification is limited by environment, say exactly what was and was not verified.
 
-### Delivering HTML artifacts when the user can't reach container paths
+### Delivering HTML artifacts — two paths
 
-If the container filesystem is not directly accessible from the user's machine, deliver the HTML as a code block (```html ...```) rather than a path. The user copies it, saves as `.html`, and opens locally. This is the default delivery mode unless the user has direct container access.
+**Path 1 (preferred when available): use `publish_html` tool**
+
+This environment has a `publish_html` tool that pushes HTML directly to Cloudflare Pages and returns a public URL. This is the default delivery path — use it unless there's a reason not to.
+
+```python
+# Available at: tools/publish_html.py
+# Env var needed: GITHUB_TOKEN (already set in this environment)
+# Base URL: https://hermes-pages.rouse-gordon.workers.dev
+
+from tools.publish_html import publish_html
+result = publish_html('slug-name', html_content)
+# Returns: {"success": true, "url": "https://hermes-pages.rouse-gordon.workers.dev/<hash>-slug-name.html", ...}
+```
+
+The returned URL is shareable immediately — Cloudflare Pages auto-deploys on push, typically live within 30 seconds.
+
+**Path 2 (fallback): code block copy-paste**
+
+If `publish_html` is unavailable (no GITHUB_TOKEN, Cloudflare Pages not configured, or the artifact belongs in a specific repo path), deliver as a code block. The user copies, saves as `.html`, opens locally.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+...
+```
 
 Keep code blocks tidy — validate the HTML structure before posting. Do not paste broken or truncated HTML.
 
-If the artifact is large or the user frequently needs HTML delivery, consider writing to `/tmp/<name>.html` as a staging point and presenting the path in the chat response as well as the code block.
+**When writing to a watched repo:** `/opt/data/repo` is git-tracked and auto-pushed by the source-watcher. If the artifact belongs in the repo (e.g., a landing page for a project), write directly to `/opt/data/repo/<path>` and it will be committed and pushed within ~3 minutes automatically.
 
-## Final Response Format
+**For personalized content (landing pages, CVs, portfolios):** Ask the user to paste source material (LinkedIn export, resume text, copy-paste from their profile) before designing, rather than building from memory. Source material produces accurate content; memory produces approximations.
 
-Keep final responses short.
+---
+
+## Portable Opening Prompt Pattern
 
 Include:
 

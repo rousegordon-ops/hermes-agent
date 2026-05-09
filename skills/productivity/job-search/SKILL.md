@@ -104,6 +104,18 @@ site:linkedin.com OR site:indeed.com "software development engineer" OR "systems
 site:ziprecruiter.com OR site:glassdoor.com [company] [role] Thousand Oaks OR Camarillo
 ```
 
+## Landing Page
+
+Gordon has a personal landing page built from his LinkedIn data. It's a dark GitHub-style resume page used for recruiter outreach and job applications.
+
+**Live URL pattern:** `https://hermes-pages.rouse-gordon.workers.dev/<hash>-gordon-rouse-landing.html`
+
+**Current version:** published with full LinkedIn work history (KLA 31 years, Syntex Labs, Santa Clara MS, UCSB BS).
+
+**To update:** Edit `/opt/data/repo/landing.html`, then use `publish_html` to republish. Gordon can share the URL directly with recruiters. The landing page includes his full career timeline, education, target employers, and open-to section.
+
+---
+
 ## Reference Data
 
 See `references/ventura-employers.md` for compiled employer details, roles, salary ranges, ATS quirks, and search patterns from verified research.
