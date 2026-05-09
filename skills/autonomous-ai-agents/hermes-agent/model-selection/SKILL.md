@@ -1,7 +1,7 @@
 ---
 name: model-selection
-description: "Guide for picking which AI model Hermes should use. Default + automatic fallback are configured in environment/config; this skill is for cases where the user explicitly asks for a different model, or when a task warrants a deliberate switch (e.g. escalation to Sonnet for quality, or to Opus for hard reasoning)."
-version: 1.1.0
+description: "Guide for picking which AI model Hermes should use. Default + automatic fallback are configured in environment/config; this skill is only for cases where the user explicitly asks for a different model."
+version: 2.0.0
 author: Gordon Rouse
 license: MIT
 metadata:
@@ -13,73 +13,65 @@ metadata:
 
 ## Default behavior — no skill action needed
 
-On every container start, the entrypoint enforces `model.default = MiniMax-M2.7` (set via `HERMES_ENFORCED_MODEL` Railway env var). MiniMax is paid per-token via the configured base URL — bulk-friendly, doesn't touch Pro/Max quota.
+On every container start, the entrypoint enforces `model.default = openai-codex/gpt-5.5` (set via `HERMES_ENFORCED_MODEL` Railway env var). GPT-5.5 is served via the OpenAI Codex backend (`https://chatgpt.com/backend-api/codex`) using OAuth credentials tied to the user's ChatGPT subscription — no per-token API billing.
 
-`fallback_providers` in `~/.hermes/config.yaml` is a two-step chain: **Sonnet 4.6 (Anthropic OAuth)** then **MiniMax-M2.7**. The chain serves two purposes:
-- If MiniMax (default) fails → falls back to Sonnet (Pro/Max OAuth rescue).
-- If the user has manually switched to Sonnet or Opus and that hits a rate limit → falls through Sonnet (one redundant retry when Sonnet is the active model) → lands on MiniMax (paid-tier rescue).
+`fallback_providers` in `~/.hermes/config.yaml` is a single-entry chain: **MiniMax-M2.7** (paid per-token via the MiniMax base URL). If GPT-5.5 fails — quota exhaustion, network error, or detected model substitution (see below) — Hermes falls through to MiniMax silently.
 
-Fallbacks are **silent** — no user-visible message, just keeps answering. Switch happens inside `agent/run_agent.py`'s fallback loop.
+Fallbacks are silent — no user-visible message, just keeps answering. Switch happens inside `agent/run_agent.py`'s fallback loop.
 
-`auxiliary.compression.{provider,model}` is pinned to `gemini` / `gemini-3-flash` (using `GEMINI_API_KEY`). Compaction uses Gemini's large context window, so summarization is robust regardless of which main model is active — even after a fallback to a smaller-context model, compaction still succeeds.
+`auxiliary.compression.{provider,model}` is pinned to `gemini` / `gemini-3-flash` (using `GEMINI_API_KEY`). Compaction uses Gemini's large context window, so summarization is robust regardless of which main model is active.
 
 Don't invoke this skill for routine work. The default + auto-fallback handles it.
 
-## When to manually switch
+## Strict model verification — prevents silent OpenAI downgrades
 
-> **MANDATORY VERSION PINS — these override your training-time defaults.** When the user says "Sonnet" without a version, that means **`claude-sonnet-4-6`** (not 4-7, not anything newer). When the user says "Opus" without a version, that means **`claude-opus-4-6`** (not 4-7, not 4-1, not 4-20250514). The user has chosen these versions deliberately. Do NOT silently route to a newer Opus or Sonnet variant just because it exists — even if your training data tells you 4-7 is "the latest." Only deviate from these defaults if the user *explicitly* names a different version (e.g. "switch to opus 4-7").
+The Codex backend can server-side substitute a smaller model (e.g. `gpt-5.5-mini`) when the requested tier is rate-limited. To prevent this from happening invisibly, `run_agent.py` checks the `model` field on every Codex response and treats any non-matching family as a failure — triggering the explicit MiniMax fallback instead of accepting the downgrade.
+
+Match rule: served model must equal requested model, OR match `{requested}-DIGIT...` (date-stamped versions like `gpt-5.5-2026-01-15`). Anything alphabetic after the family name (`-mini`, `-nano`, etc.) is treated as substitution.
+
+Controlled by env var `HERMES_CODEX_STRICT_MODEL` (default `1`). Set to `0` to disable if it ever causes false positives.
+
+When substitution is detected, you'll see this in `/opt/data/logs/agent.log`:
+```
+WARNING - Codex model substitution detected: requested=gpt-5.5 served=gpt-5.5-mini — routing to fallback.
+```
+
+## When to manually switch
 
 Use `/model <name>` (session-scoped) when:
 
 | Situation | Action |
 |---|---|
-| User says "use Claude" / "use Sonnet" / "use better model" | `/model anthropic/claude-sonnet-4-6` |
-| User says "use Opus" / "use the smartest model" / "think harder about this" | `/model anthropic/claude-opus-4-6` |
-| User explicitly says "use opus 4-7" / "use the latest opus" | `/model anthropic/claude-opus-4-7` |
-| User explicitly says "use sonnet 4-7" / similar | use the named identifier verbatim |
-| User says "use MiniMax" / "go back to default" | `/model MiniMax-M2.7` |
-| You've gotten MiniMax wrong twice on the same problem | escalate: `/model anthropic/claude-sonnet-4-6`, retry |
-| You've gotten Sonnet wrong twice on the same hard problem | escalate further: `/model anthropic/claude-opus-4-6`, retry |
-| Multi-step planning across an unfamiliar domain, where mistakes cost real time | escalate to Sonnet (or Opus) before starting |
-| User explicitly asks for a careful answer / important decision / nuanced judgment | escalate to Sonnet or Opus |
-
-Don't escalate to Opus for routine chat, simple lookups, format conversions, or tasks Sonnet/MiniMax handled correctly. Opus burns Pro/Max quota the fastest — use it deliberately.
+| User says "use MiniMax" / "use the cheap model" | `/model minimax/MiniMax-M2.7` |
+| User says "go back to default" / "use GPT" | `/model openai-codex/gpt-5.5` |
+| User asks for Claude / Sonnet / Opus | Tell them Anthropic models are not currently configured. The fork sunset Anthropic to consolidate on the ChatGPT subscription + MiniMax. Re-adding would require a separate Claude Pro/Max OAuth via `hermes auth add anthropic`. |
+| User asks for "the smartest" / "think harder" | GPT-5.5 IS the top tier here. If they want more reasoning depth, suggest framing the request to invoke `xhigh` reasoning effort via prompt (the model supports low/medium/high/xhigh internally; default is `medium`). |
 
 ## Model identifiers
 
 | Model | Identifier | Auth | Context | Notes |
 |---|---|---|---|---|
-| MiniMax-M2.7 (default) | `MiniMax-M2.7` | base_url (paid per-token) | 200K tokens | Bulk-friendly, no Pro/Max quota touched |
-| Sonnet 4.6 (auto-fallback) | `anthropic/claude-sonnet-4-6` | Claude Pro/Max OAuth (`~/.claude/.credentials.json`) | 1M tokens | Best general balance; bills Pro/Max |
-| Opus 4.6 (manual only) | `anthropic/claude-opus-4-6` | same OAuth | 1M tokens | Smartest; Pro/Max quota burns fastest |
+| GPT-5.5 (default) | `openai-codex/gpt-5.5` | ChatGPT subscription OAuth (`/opt/data/auth.json`) | 272K tokens | Reasoning levels: low/medium/high/xhigh (default medium); image input supported |
+| MiniMax-M2.7 (auto-fallback) | `minimax/MiniMax-M2.7` | API key (env: `MINIMAX_API_KEY`) | 200K tokens | Paid per-token; ~$10/mo subscription with generous quota |
 
 ## Switching mechanics
 
 - `/model <name>` — switch **for this session only** (lives in `_session_model_overrides` in memory; lost on restart).
-- `/model <name> --global` — write to `~/.hermes/config.yaml`. **But:** the entrypoint re-applies `HERMES_ENFORCED_MODEL` on every restart, so `--global` only sticks until next container start. To make a permanent change, the user has to update the Railway env var.
-- `/model --provider anthropic` — auto-pick best Anthropic model. Useful if the user just wants a provider switch.
+- `/model <name> --global` — write to `~/.hermes/config.yaml`. **But:** the entrypoint re-applies `HERMES_ENFORCED_MODEL` on every restart, so `--global` only sticks until next container start. To make a permanent change, update the Railway env var.
 - The `/model` command refuses to switch while an agent loop is running (see `gateway/run.py`). Wait until the current request finishes.
-
-**Always use the dashed form** for Anthropic identifiers (`claude-opus-4-6`, not `claude-opus-4.6`). The dotted form silently routes to an older variant — Anthropic's API treats `4.6` as a decimal that gets truncated to `4`, landing on `claude-opus-4-20250514` (Opus 4.0) instead of the intended `claude-opus-4-6` (Opus 4.6). Same applies to Sonnet.
 
 ## Verifying the current model
 
-**You cannot reliably verify the active model from within the agent.** Logs (`agent.log`) only show inbound messages, not internal routing decisions. `_session_model_overrides` is in-memory and not readable from tools. The only tell is behavioral:
+Logs (`/opt/data/logs/agent.log`) will show `API Response received - Model: <name>` per turn when verbose logging is on. The `model` field on Codex responses tells you exactly which variant the backend served. If you need to verify the current default without sending a turn, the entrypoint logs `[entrypoint] Enforced model.default = openai-codex/gpt-5.5` on every boot.
 
-- **MiniMax-M2.7**: snappy, concise responses
-- **Sonnet 4.6**: more verbose, visible reasoning, higher latency
-- **Opus 4.6**: noticeably deliberate, longest reasoning traces
-
-If the user asks "what model are you on?", be honest: say you can't verify programmatically and describe the behavioral tell. Do NOT guess or assert a model you can't confirm.
-
-To verify externally, the user can run `hermes model` in a terminal (requires an interactive session — can't run through a pipe). The env var `HERMES_ENFORCED_MODEL` shows the enforced default (not session overrides).
+If the user asks "what model are you on?" mid-conversation, be honest: you can't reliably introspect from inside the agent loop. Describe the behavioral tell and suggest they grep the log.
 
 ## Mid-conversation switch — what to expect
 
-Switching from a large-context model (Sonnet/Opus, 1M) down to MiniMax (200K) only triggers compression if the conversation has actually grown past ~170K tokens. For everyday chat, that's never. When it does fire, the compressor uses **Gemini 3 Flash** to summarize middle turns, preserving system prompt + first 3 turns + last ~20 messages. Older middle detail gets a lossy summary, not deletion.
+Switching from GPT-5.5 (272K) down to MiniMax (200K) only triggers compression if the conversation has actually grown past ~170K tokens. For everyday chat, that's never. When it does fire, the compressor uses **Gemini 3 Flash** to summarize middle turns, preserving system prompt + first 3 turns + last ~20 messages.
 
 Switching **upward** in context is free — no compression needed.
 
 ## When a fallback fires
 
-You won't see it directly — the agent loop swallows the failure and retries with Sonnet. If you suspect MiniMax is down or rate-limited, check `/opt/data/logs/agent.log` for `fallback_activated` lines. Don't apologize to the user about a fallback that worked; only surface it if the *fallback also failed* and the request errored visibly.
+You won't see it directly — the agent loop swallows the failure and retries with MiniMax. If you suspect GPT-5.5 is having issues, check `/opt/data/logs/agent.log` for `fallback_activated` lines or `Codex model substitution detected` warnings. Don't apologize to the user about a fallback that worked; only surface it if the *fallback also failed* and the request errored visibly.
