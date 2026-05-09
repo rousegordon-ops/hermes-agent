@@ -1,0 +1,94 @@
+---
+name: html-to-cloudflare
+description: "Generate HTML content and publish it to Gordon's Cloudflare Pages site (hermes-pages). Covers the full workflow from HTML generation to live URL."
+version: 1.0.0
+author: Hermes Agent
+license: MIT
+metadata:
+  hermes:
+    tags: [html, cloudflare, publishing, static-site]
+    homepage: https://github.com/rousegordon-ops/hermes-pages
+---
+
+# HTML → Cloudflare Pages
+
+Generate HTML content and publish it to Gordon's personal Cloudflare Pages deployment. **The canonical workflow for any generated HTML that Gordon wants to view live without copy-pasting.**
+
+## Workflow
+
+1. **Generate HTML** — write the content to a local file (typically in `/opt/data/repo/` or wherever the work is happening)
+2. **Publish** — use `publish_html` tool via Python (since the tool isn't auto-discovered as a direct tool call):
+   ```python
+   import sys, os
+   sys.path.insert(0, '/opt/data/repo')
+   os.environ['GITHUB_TOKEN'] = read_token()
+   from tools.publish_html import publish_html
+   with open('/path/to/file.html', 'r') as f:
+       html = f.read()
+   result = publish_html('slug-name', html)
+   print(result)  # {"success": true, "url": "https://hermes-pages.rouse-gordon.workers.dev/<hash>-slug-name.html", ...}
+   ```
+3. **Update the index** — `publish_html` always creates a new file (new hash each time). The index at `/opt/data/hermes-pages-repo/index.html` needs to be updated with the new filename so the hub page links to the latest version.
+
+## Git credentials setup (critical)
+
+The `publish_html` tool requires `GITHUB_TOKEN` in the environment. It's NOT automatically set — read it from the credentials file:
+
+```python
+import re
+with open('/opt/data/.git-credentials') as f:
+    cred = f.read()
+m = re.search(r'x-access-token:([^\@]+)\@', cred)
+token = m.group(1) if m else ''
+os.environ['GITHUB_TOKEN'] = token
+```
+
+The credentials file has the format: `https://x-access-token:{github_pat_...}@github.com`
+
+## Pushing to hermes-pages repo directly
+
+If `publish_html` isn't available or you need to push manually:
+
+```bash
+cd /opt/data/hermes-pages-repo
+git config user.email "hermes@hermes-agent.local"
+git config user.name "Hermes"
+git add <file>
+git commit -m "<message>"
+GIT_TERMINAL_PROMPT=0 git push origin main
+```
+
+**Always use `GIT_TERMINAL_PROMPT=0`** — avoids interactive SSH/GitHub prompts that would hang.
+
+## Key repos and URLs
+
+| Repo | URL |
+|------|-----|
+| Pages site | `https://github.com/rousegordon-ops/hermes-pages` |
+| Pages deployment | `https://hermes-pages.rouse-gordon.workers.dev` |
+| Hermes-agent repo | `https://github.com/rousegordon-ops/hermes-agent` |
+| Gordon's GitHub org | `https://github.com/rousegordon-ops` |
+
+## Index page maintenance
+
+The hub at `https://hermes-pages.rouse-gordon.workers.dev/` is backed by `/opt/data/hermes-pages-repo/index.html`. Every time a new page is published:
+1. Note the new filename from the `publish_html` result
+2. Update the `href` in the index page's `.page-card` links
+3. Push the index update to `hermes-pages`
+
+Cloudflare Pages auto-deploys on push — typically live within 30 seconds.
+
+## Common page types Gordon publishes
+
+- **Profession/career** — landing page with work history, targets, contact info
+- **Hobbies** — future: interests, projects outside work
+- **Reports** — one-off generated content (job search summaries, analysis, etc.)
+
+Each gets its own entry in the hub index.
+
+## Pitfalls
+
+- **Forgetting to update the index** — results in stale links on the hub page pointing to old filenames
+- **`GITHUB_TOKEN` not set** — `publish_html` returns `{"success": false, "error": "GITHUB_TOKEN is not set"}`. Fix: read from `/opt/data/.git-credentials` as shown above
+- **Interactive git prompts** — never run `git push` without `GIT_TERMINAL_PROMPT=0` in this environment
+- **Git author identity unknown** — always configure `user.email` and `user.name` before committing to hermes-pages repo (different from hermes-agent repo which has its own gitconfig)
