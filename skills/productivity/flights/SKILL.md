@@ -46,6 +46,7 @@ python3 /opt/data/skills/productivity/flights/scripts/flights_client.py \
 | `--return YYYY-MM-DD` | *(none — one-way)* | Return date for round-trip |
 | `--adults N` | 1 | Number of adult passengers |
 | `--currency XXX` | USD | Currency code for prices |
+| `--cabin first\|business\|economy` | *(all)* | Cabin class filter |
 
 ### Examples
 
@@ -80,6 +81,33 @@ JSON object with:
 - SerpAPI free tier has limited monthly searches — don't loop/retry excessively
 - Some routes return no "best_flights" — the script falls back to "other_flights"
 - `curl` is not available in this container — use the script (Python urllib) for all HTTP calls
+
+## Hawaii Price Tracker
+
+Ongoing monitoring for cheap SFO → Hawaii (OGG/HNL/KOA/LIH) round-trip United **first class** fares, **7-day trip**. Sends a daily report to Telegram at 2 PM PT — always, not just on new lows. Reports all three window prices independently (4w, 8w, 12w). No all-time low tracking.
+
+Script: `/opt/data/scripts/hawaii-price-checker.py`
+Tokens via wrapper: `/opt/data/scripts/hawaii-price-checker-wrapper.py` (reads `/opt/data/.env.tokens` — cron agent has no container env vars, wrapper is mandatory)
+State: `/opt/data/hawaii-price-tracker/state.json`
+Cron: job ID `0189c547e497`, `0 21 * * *` UTC (2 PM PT), deliver=telegram
+
+Report format (Markdown, Telegram-native):
+```
+✈️ *Hawaii First Class — SFO RT (7 days)*
+_May 06_
+
+*Maui (OGG)*: 4w $455 (Fri Jun 05) | 8w $460 (Fri Jul 03) | 12w $445 (Fri Jul 31)
+*Honolulu (HNL)*: 4w $472 (Fri Jun 05) | 8w $478 (Fri Jul 03) | 12w $470 (Fri Jul 31)
+*Kona (KOA)*: 4w $407 (Fri Jun 05) | 8w $415 (Fri Jul 03) | 12w $400 (Fri Jul 31)
+*Kauai (LIH)*: 4w $481 (Fri Jun 05) | 8w $490 (Fri Jul 03) | 12w $475 (Fri Jul 31)
+
+_United first class · SFO round-trip · 7-day trip_
+_4/8/12-week departure windows_
+```
+
+On SerpAPI error, failed windows show `⚠️` and a warning line is prepended to the report. Errors are NOT silently swallowed.
+
+See `references/hawaii-price-tracker-impl.md` for implementation detail.
 
 ## Route Intelligence (California Short-Haul)
 

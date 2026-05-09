@@ -10839,8 +10839,35 @@ class AIAgent:
                     response_invalid = False
                     error_details = []
                     if self.api_mode == "codex_responses":
+                        # Strict model verification: defend against the Codex backend
+                        # silently substituting a smaller variant (e.g. gpt-5.5 → gpt-5.5-mini)
+                        # when the requested model is rate-limited. Treat substitution as
+                        # invalid so the explicit fallback_providers chain (MiniMax) fires.
+                        # Allow exact match or date-stamped versions (gpt-5.5-2026-01-15);
+                        # reject tier variants (gpt-5.5-mini, gpt-5.5-nano).
+                        if response is not None and os.environ.get(
+                            "HERMES_CODEX_STRICT_MODEL", "1"
+                        ) not in ("0", "false", "False", ""):
+                            _req_model = api_kwargs.get("model")
+                            _served_model = getattr(response, "model", None)
+                            if _req_model and _served_model:
+                                _ok = _served_model == _req_model or bool(
+                                    re.fullmatch(
+                                        rf"{re.escape(str(_req_model))}-\d[\d\-]*",
+                                        str(_served_model),
+                                    )
+                                )
+                                if not _ok:
+                                    logging.warning(
+                                        "Codex model substitution detected: requested=%s served=%s — routing to fallback. %s",
+                                        _req_model, _served_model, self._client_log_context(),
+                                    )
+                                    response_invalid = True
+                                    error_details.append(
+                                        f"served model {_served_model} != requested {_req_model}"
+                                    )
                         _ct_v = self._get_transport()
-                        if not _ct_v.validate_response(response):
+                        if not response_invalid and not _ct_v.validate_response(response):
                             if response is None:
                                 response_invalid = True
                                 error_details.append("response is None")

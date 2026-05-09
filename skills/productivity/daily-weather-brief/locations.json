@@ -1,0 +1,7 @@
+{
+  "locations": [
+    {"name": "Dublin, CA",    "lat": 37.70, "lon": -121.94},
+    {"name": "Ventura, CA",   "lat": 34.27, "lon": -119.23},
+    {"name": "Truckee, CA",   "lat": 39.33, "lon": -120.18}
+  ]
+}
