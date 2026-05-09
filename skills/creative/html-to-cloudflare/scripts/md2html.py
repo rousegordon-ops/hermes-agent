@@ -1,36 +1,42 @@
 #!/usr/bin/env python3
-"""Convert a directory of markdown files to HTML wiki pages, with client-side auth.
+"""
+Convert a directory of markdown files to auth-protected HTML wiki pages.
 
 Usage:
-  python3 md2html.py WIKI_DIR [--dest DIR] [--cookie-name NAME] [--cookie-value VAL]
+  python3 md2html.py WIKI_DIR [--dest DIR]
 
 Auth flow:
-  - login.html written as index.html (entry point)
-  - Each wiki page gets inline auth-check <script>: redirects to login if cookie missing
-  - Cookie set by login page on password success
+  - index.html = hub page (auth check + page links), entry point at /wiki/
+  - login.html = login form (email + password), accessible without auth
+  - Other pages = content pages with inline auth check
 
-Cookie defaults: wiki_auth=GW2026 (must match login.html SECRET)
+Cookie: wiki_auth=GW2026 (set by login on success, checked by all other pages)
+
+Known quirks:
+  - Cloudflare Pages strips .html from URLs (307 redirect to no-ext). Link targets
+    must NOT include .html in hrefs used in nav or hub. The .html files still exist
+    and load fine once reached, but the extension in hrefs causes a redirect loop.
 """
+
 import os, re, sys, argparse
 
-# ─── Config (change here to rotate the password) ──────────────────────────────
-COOKIE_NAME = 'wiki_auth'
+COOKIE_NAME  = 'wiki_auth'
 COOKIE_VALUE = 'GW2026'
 
-# Nav: (href, label)
+# Hub page links — hrefs MUST NOT have .html (CF strips it, causes 307 + loop)
 NAV_ITEMS = [
-    ('/wiki/',                       'Home'),
-    ('/wiki/entities/gordon-rouse',  'Gordon Rouse'),
-    ('/wiki/entities/kla',           'KLA'),
-    ('/wiki/concepts/ventura-relocation', 'Ventura'),
-    ('/wiki/log',                    'Log'),
+    ('/wiki/',                              'Home'),
+    ('/wiki/entities/gordon-rouse',         'Gordon Rouse'),
+    ('/wiki/entities/kla',                  'KLA'),
+    ('/wiki/concepts/ventura-relocation',   'Ventura'),
+    ('/wiki/log',                           'Log'),
 ]
 
-# ─── Markdown → HTML ───────────────────────────────────────────────────────────
+# ─── Markdown → HTML ────────────────────────────────────────────────────────────
+
 def md_to_html(text):
     lines = text.split('\n')
     out, in_code = [], False
-
     for line in lines:
         if line.strip().startswith('```'):
             if not in_code: out.append('<pre><code>')
@@ -59,27 +65,15 @@ def md_to_html(text):
         line = re.sub(r'`(.+?)`',        r'<code>\1</code>',    line)
         line = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'<a href="\2">\1</a>', line)
         line = re.sub(r'\[\[([^\]]+)\]\]',
-                      lambda m: f'<a href="{m.group(1).replace(" ","-")}.html">{m.group(1)}</a>', line)
-
+                      lambda m: f'<a href="{m.group(1).replace(" ","-")}">{m.group(1)}</a>', line)
         if line.strip() in ('---','***','___'):
             out.append('<hr>')
         elif line.strip():
             out.append(f'<p>{line}</p>')
-
     return '\n'.join(out)
 
-# ─── Auth check (injected into every wiki page) ───────────────────────────────
-AUTH_CHECK = f"""
-<script>
-(function(){{
-  var c=document.cookie.match(/{COOKIE_NAME}=([^;]+)/);
-  if(!c||c[1]!=='{COOKIE_VALUE}'){{
-    window.location.href='/wiki/login.html?dst='+encodeURIComponent(window.location.pathname);
-  }}
-}})();
-</script>"""
+# ─── Shared CSS ────────────────────────────────────────────────────────────────
 
-# ─── CSS (dark GitHub theme) ───────────────────────────────────────────────────
 CSS = """
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #0d1117; color: #e6edf3; line-height: 1.7; }
@@ -114,6 +108,138 @@ def nav_html(active):
         for href, label in NAV_ITEMS
     )
 
+# ─── Auth check (injected into every non-login page) ──────────────────────────
+AUTH_CHECK = f"""
+<script>
+(function(){{
+  var c=document.cookie.match(/{COOKIE_NAME}=([^;]+)/);
+  if(!c||c[1]!=='{COOKIE_VALUE}'){{
+    window.location.href='/wiki/login?dst='+encodeURIComponent(window.location.pathname);
+  }}
+}})();
+</script>"""
+
+# ─── Hub page (auth-required index of wiki pages) ──────────────────────────────
+def build_hub():
+    pages = [
+        ('entities/gordon-rouse',         'Gordon Rouse'),
+        ('entities/kla',                  'KLA Corporation'),
+        ('concepts/ventura-relocation',   'Ventura Relocation'),
+        ('log',                           'Wiki Log'),
+        ('schema',                        'Schema'),
+    ]
+    links_html = '\n'.join(
+        f'<a href="/wiki/{href}" class="page"><span class="name">{label}</span><span class="arrow">→</span></a>'
+        for href, label in pages
+    )
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gordon's Wiki</title>
+  <style>
+    {CSS}
+    .hub {{ max-width: 500px; margin: 0 auto; padding: 40px 24px; text-align: center; }}
+    .hub h1 {{ color: #58a6ff; border: none; margin-bottom: 8px; }}
+    .hub .subtitle {{ color: #8b949e; font-size: 14px; margin-bottom: 32px; }}
+    .pages {{ display: flex; flex-direction: column; gap: 10px; text-align: left; }}
+    a.page {{ display: flex; align-items: center; justify-content: space-between; padding: 14px 20px;
+              background: #161b22; border: 1px solid #30363d; border-radius: 10px; color: #e6edf3;
+              font-size: 14px; font-weight: 500; }}
+    a.page:hover {{ border-color: #58a6ff; background: #1c2128; text-decoration: none; }}
+    .arrow {{ color: #58a6ff; }}
+    footer {{ margin-top: 40px; padding-top: 24px; border-top: 1px solid #30363d; }}
+    footer a {{ color: #8b949e; font-size: 13px; }}
+  </style>
+  {AUTH_CHECK}
+</head>
+<body>
+  <div class="hub">
+    <h1>Gordon's Wiki</h1>
+    <p class="subtitle">Your personal knowledge base</p>
+    <div class="pages">{links_html}</div>
+    <footer><a href="/">← Back to home</a></footer>
+  </div>
+</body>
+</html>'''
+
+# ─── Login page (email + password) ────────────────────────────────────────────
+def build_login():
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Gordon's Wiki</title>
+  <style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: #0d1117; color: #e6edf3; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center; }}
+    .card {{ background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 40px;
+             width: 100%; max-width: 400px; }}
+    h1 {{ font-size: 24px; margin-bottom: 8px; color: #e6edf3; text-align: center; }}
+    p {{ font-size: 14px; color: #8b949e; margin-bottom: 32px; text-align: center; }}
+    label {{ display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; }}
+    input {{ width: 100%; padding: 12px 16px; background: #0d1117; border: 1px solid #30363d;
+             border-radius: 8px; color: #e6edf3; font-size: 16px; outline: none; margin-bottom: 16px;
+             box-sizing: border-box; }}
+    input:focus {{ border-color: #58a6ff; }}
+    .pw-row {{ margin-bottom: 24px; }}
+    button {{ width: 100%; padding: 12px; background: #1f6feb; color: white; border: none;
+              border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }}
+    button:hover {{ background: #388bfd; }}
+    .error {{ color: #f85149; font-size: 13px; margin-top: 12px; min-height: 20px; text-align: center; }}
+    .hint {{ font-size: 12px; color: #484f58; margin-top: 24px; text-align: center; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Gordon's Wiki</h1>
+    <p>Sign in to continue</p>
+    <label for="email">Email</label>
+    <input type="email" id="email" placeholder="you@example.com"
+           onkeydown="if(event.key==='Enter')login()" />
+    <div class="pw-row">
+      <label for="pw">Password</label>
+      <input type="password" id="pw" placeholder="Password"
+             onkeydown="if(event.key==='Enter')login()" />
+    </div>
+    <button onclick="login()">Sign In</button>
+    <div class="error" id="err"></div>
+    <div class="hint">Access is by invitation only</div>
+  </div>
+  <script>
+    // If already logged in, go straight to hub
+    (function() {{
+      var c = document.cookie.match(/{COOKIE_NAME}=([^;]+)/);
+      if (c && c[1] === '{COOKIE_VALUE}') {{
+        window.location.href = '/wiki/';
+      }}
+    }})();
+    function login() {{
+      var email = document.getElementById('email').value.trim().toLowerCase();
+      var pw = document.getElementById('pw').value;
+      if (email === 'rouse.gordon@gmail.com' && pw === '{COOKIE_VALUE}') {{
+        document.cookie = '{COOKIE_NAME}={COOKIE_VALUE}; path=/wiki; max-age=31536000; SameSite=Strict';
+        var dst = new URLSearchParams(window.location.search).get('dst') || '/wiki/';
+        window.location.href = dst;
+      }} else {{
+        var err = document.getElementById('err');
+        if (email !== 'rouse.gordon@gmail.com') {{
+          err.textContent = 'Email not recognized';
+        }} else {{
+          err.textContent = 'Incorrect password';
+        }}
+        document.getElementById('pw').value = '';
+      }}
+    }}
+  </script>
+</body>
+</html>'''
+
+# ─── Content page ──────────────────────────────────────────────────────────────
 def build_page(title, body, path):
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -130,78 +256,29 @@ def build_page(title, body, path):
 </body>
 </html>'''
 
+# ─── Main ──────────────────────────────────────────────────────────────────────
 def convert(md_path, dest, rel):
     with open(md_path) as f:
         content = f.read()
-    # Strip YAML frontmatter
     if content.startswith('---'):
         end = content.find('\n---', 3)
         if end != -1:
             content = content[end+4:]
-
     title = 'Wiki'
     for line in content.split('\n'):
         m = re.match(r'^#\s+(.*)', line)
         if m:
             title = m.group(1); break
-
     html = md_to_html(content)
-
-    # Special routing: skip index.md (login is the index), route SCHEMA/log
+    # Route: index.md → skip (hub is separate), SCHEMA.md → schema, log.md → log
     if rel == 'index.md':
         return
     rel = rel.replace('SCHEMA.md','schema.html').replace('log.md','log.html').replace('.md','.html')
-
     out = os.path.join(dest, rel)
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, 'w') as f:
         f.write(build_page(title, html, rel))
     print(f'  {out}')
-
-LOGIN = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login — Gordon's Wiki</title>
-  <style>
-    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; display: flex; align-items: center; justify-content: center; }}
-    .card {{ background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; text-align: center; }}
-    h1 {{ font-size: 24px; margin-bottom: 8px; color: #e6edf3; }}
-    p {{ font-size: 14px; color: #8b949e; margin-bottom: 32px; }}
-    input {{ width: 100%; padding: 12px 16px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #e6edf3; font-size: 16px; text-align: center; outline: none; margin-bottom: 16px; box-sizing: border-box; }}
-    input:focus {{ border-color: #58a6ff; }}
-    button {{ width: 100%; padding: 12px; background: #1f6feb; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }}
-    button:hover {{ background: #388bfd; }}
-    .error {{ color: #f85149; font-size: 13px; margin-top: 12px; min-height: 20px; }}
-    .hint {{ font-size: 12px; color: #484f58; margin-top: 24px; }}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Gordon's Wiki</h1>
-    <p>Enter your password to continue</p>
-    <input type="password" id="pw" placeholder="Password" onkeydown="if(event.key==='Enter')login()" />
-    <button onclick="login()">Sign In</button>
-    <div class="error" id="err"></div>
-    <div class="hint">Contact Gordon for access</div>
-  </div>
-  <script>
-    var SECRET = '{COOKIE_VALUE}';
-    function login() {{
-      var pw = document.getElementById('pw').value;
-      if (pw === SECRET) {{
-        document.cookie = 'wiki_auth=' + SECRET + '; path=/wiki; max-age=31536000; SameSite=Strict';
-        window.location.href = new URLSearchParams(window.location.search).get('dst') || '/wiki/';
-      }} else {{
-        document.getElementById('err').textContent = 'Incorrect password';
-        document.getElementById('pw').value = '';
-      }}
-    }}
-  </script>
-</body>
-</html>'''
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
@@ -210,13 +287,19 @@ if __name__ == '__main__':
     args = ap.parse_args()
 
     dest = args.dest
+    os.makedirs(dest, exist_ok=True)
 
-    # login.html as entry point
+    # Write hub (entry point at /wiki/) and login (at /wiki/login)
     with open(os.path.join(dest, 'index.html'), 'w') as f:
-        f.write(LOGIN)
-    print(f'  {dest}/index.html (login entry)')
+        f.write(build_hub())
+    print(f'  {dest}/index.html (hub — auth required)')
+
+    with open(os.path.join(dest, 'login.html'), 'w') as f:
+        f.write(build_login())
+    print(f'  {dest}/login.html (login — no auth)')
 
     for root, _, files in os.walk(args.wiki_dir):
         for fn in files:
             if fn.endswith('.md'):
-                convert(os.path.join(root, fn), dest, os.path.relpath(os.path.join(root, fn), args.wiki_dir))
+                convert(os.path.join(root, fn), dest,
+                        os.path.relpath(os.path.join(root, fn), args.wiki_dir))
