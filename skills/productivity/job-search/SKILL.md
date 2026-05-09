@@ -33,19 +33,36 @@ Career research, employer analysis, and automated job monitoring for Gordon's re
 
 ## Daily Job Report (Cron)
 
-Set up with `cronjob` tool. Prompt template:
+Set up with `cronjob` tool. Cron job ID: `041c2bde2ba9` (Ventura Area Tech Jobs Daily).
+Schedule: `0 14 * * 1-5` (2 PM UTC = 7 AM PT, Mon–Fri). Delivery: `origin`.
 
+**Important — cron job prompt style:**
+- Attach prompt TEXT directly, not a skill reference
+- Do NOT attach `autonomous-ai-agents/hermes-agent` or any skill to cron jobs that just do web search — skills are heavy and unnecessary for simple search tasks
+- Set `skills: []` explicitly when creating or updating job crons
+
+Prompt template (attach as cron prompt, not as a separate sub-agent skill):
 ```
-Every weekday morning (Mon-Fri), search for senior-level roles at [Northrop Grumman, Amgen, Teledyne] near Ventura CA.
+Every weekday morning (Mon-Fri), search for senior-level roles at Northrop Grumman, Amgen, and Teledyne near Ventura CA for Gordon Rouse. Gordon is a Director of Engineering at KLA with 20+ years in software/systems engineering and program management. Prefers IC track (staff/principal) but will consider management. No firmware/Verilog/VHDL, no adtech.
 
-Include: senior software engineer, staff software engineer, principal engineer, engineering manager, program manager, systems engineer, software engineering manager, hardware systems engineer.
+**Companies & commute:**
+- Northrop Grumman | Camarillo | ~26 min
+- Amgen | Thousand Oaks | ~32 min
+- Teledyne | Thousand Oaks/Camarillo | ~37 min
 
-Exclude: The Trade Desk (adtech), Verilog/VHDL/FPGA/firmware/hardware-description roles, embedded hardware bringup. Note if clearance may be required.
+**Search sources:**
+- Northrop Grumman: jobs.northropgrumman.com + LinkedIn
+- Amgen: careers.amgen.com + LinkedIn
+- Teledyne: flir.wd1.myworkdayjobs.com (Teledyne FLIR uses this ATS) + LinkedIn site:linkedin.com Teledyne Thousand Oaks OR Camarillo software engineer OR systems engineer OR manager
 
-For each job found, report: Company | Title | City | Salary if available | Direct URL.
+**Include:** Senior Software Engineer, Staff Engineer, Principal Engineer, Engineering Manager, Program Manager, Systems Engineer, Software Engineering Manager, Director-level roles.
 
-Format:
-**Ventura Area Jobs Report — [DAY, DATE]**
+**Exclude:** The Trade Desk, Verilog/VHDL/FPGA/firmware, embedded hardware bringup, jobs requiring active clearance (note if clearance may be needed later).
+
+**For each job:** Company | Title | City | Salary if available | Direct URL | 1-line fit assessment.
+
+**Format:**
+**Ventura Area Jobs — [DAY, DATE]**
 
 **Northrop Grumman (Camarillo ~26 min)**
 - ...
@@ -53,12 +70,14 @@ Format:
 **Amgen (Thousand Oaks ~32 min)**
 - ...
 
-**Teledyne (Thousand Oaks ~37 min)**
+**Teledyne (Thousand Oaks/Camarillo ~37 min)**
 - ...
 
 If no new relevant postings, say "No new relevant postings today."
-Keep under 500 words. Deliver to Telegram.
+Keep under 500 words.
 ```
+
+**Cron output location:** `/opt/data/cron/output/041c2bde2ba9/` (latest run: `YYYY-MM-DD_HH-MM-SS.md`). Parse the "## Response" section for the actual job report. The "## Prompt" section is the skill attachment and can be skipped.
 
 ## Company Deep-Dive Workflow
 
@@ -87,4 +106,4 @@ site:ziprecruiter.com OR site:glassdoor.com [company] [role] Thousand Oaks OR Ca
 
 ## Reference Data
 
-See `references/ventura-employers.md` for compiled employer details, roles, salary ranges, and commute data from current session research.
+See `references/ventura-employers.md` for compiled employer details, roles, salary ranges, ATS quirks, and search patterns from verified research.
