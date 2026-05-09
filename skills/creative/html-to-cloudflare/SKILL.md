@@ -202,3 +202,19 @@ Gordon's wiki is a long-term knowledge base. When incorporating new information 
 - **`md2html.py` runs on import** — the old version had a top-level for-loop that executed immediately on `import`, which is dangerous if the script is ever imported elsewhere. The script now guards all work behind `if __name__ == '__main__'`. Never add top-level side effects to this script.
 - **Login redirect must NOT include `.html`** — the Cloudflare Pages static file server strips `.html` from URLs (returning a 307 to the extensionless version). The auth redirect in `build_page()` MUST use `/wiki/login?dst=...` not `/wiki/login.html?dst=...`. The script generates this inline; verify the generated HTML contains the extensionless URL.
 - **Old wiki source path** — the original script hardcoded `/opt/data/hermes-pages-repo/gordons-llm-wiki` as the markdown source. Always pass the source dir as the first argument: `python3 /opt/data/scripts/md2html.py /opt/data/wiki`.
+- **`[[page]]` wikilinks must render as `/wiki/page`, not `/wiki/page.html`** — A critical bug: the original regex `r'<a href="\1.html">\1</a>'` produced `.html` in hrefs and no leading slash. This makes links non-clickable (Cloudflare Pages redirects `.html` → extensionless, and relative paths break from subdirectories). The correct pattern uses a lambda that strips `.md`/`.html` and prepends `/`:
+  ```python
+  line = re.sub(r'\[\[([^\]]+)\]\]', lambda m: f'<a href="/{m.group(1).replace(".md","").replace(".html","")}">{m.group(1).rsplit("/",1)[-1].replace(".md","").replace(".html","")}</a>', line)
+  ```
+  This also strips directory prefixes in display text (e.g. `[[hobbies/backcountry-fishing]]` → link to `/wiki/hobbies/backcountry-fishing`, display "backcountry-fishing").
+- **Combining wiki pages** — Valid pattern. When combining: pull the secondary section to the bottom of the primary page. Remove the merged page's markdown file, remove it from nav, rebuild, commit, push.
+- **Overstating significance triggers corrections** — Gordon corrected the Sidekick Studio framing twice. When in doubt, understate. "A hobby project he's building" is safer than "a viable post-Ventura option." Don't make him repeat it.
+- **Terminal blocks `git commit && git push`** — Compound commands with `&` cause errors. Use `execute_code` with subprocess instead:
+  ```python
+  import subprocess, os
+  os.chdir('/opt/data/hermes-pages-repo')
+  os.environ['GIT_TERMINAL_PROMPT'] = '0'
+  subprocess.run(['git', 'commit', '-m', 'message'])
+  subprocess.run(['git', 'push', 'origin', 'main'])
+  ```
+- **`rousegordon-ops` is a GitHub USER, not an org** — `https://api.github.com/users/rousegordon-ops/repos` works; `https://api.github.com/orgs/rousegordon-ops/repos` returns 404. The PAT only has read access to that user's repos (hermes-agent public, gordonclaw/hermes-pages/parts-finder/SidekickStudio private).
