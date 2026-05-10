@@ -28,8 +28,10 @@ summarizes, cross-references, files, and maintains consistency.
 Gordon wants the wiki maintained **passively** — he reads it in a browser at `https://hermes-pages.rouse-gordon.workers.dev/wiki/`, I file updates during our conversations without prompting. He doesn't want to be asked "should I add this?" every time.
 
 **How it works:**
-- Wiki lives at `/opt/data/wiki/` (markdown source), synced to `/opt/data/hermes-pages-repo/gordons-llm-wiki/` and published as HTML at `https://hermes-pages.rouse-gordon.workers.dev/wiki/`
-- HTML rendering: python3 `/opt/data/scripts/md2html.py` converts all `.md` files to `.html`, push to `hermes-pages` repo, Cloudflare auto-deploys
+- Markdown source: `/opt/data/hermes-pages/gordons-llm-wiki/`
+- HTML output: `/opt/data/hermes-pages/wiki/` (served at the URL above)
+- HTML rendering: `python3 /opt/data/hermes-pages/scripts/md2html.py` converts `.md` to `.html`, push to `hermes-pages` repo, Cloudflare auto-deploys
+- See `references/wiki-setup.md` for the full two-repo publish sequence (clone, copy images, regenerate HTML, push)
 - Auth: email+password login required. Only `rouse.gordon@gmail.com` / `GordonWiki2026!`
 - Gordon views the rendered HTML in his browser; I maintain the markdown source files
 - When Gordon asks about something in the wiki, I query the markdown source files directly
@@ -503,7 +505,36 @@ When you add a new page to `/opt/data/wiki/`:
 4. Run `python3 /opt/data/scripts/md2html.py`
 5. Git commit and push
 
-**`WIKI_PATH_MAP` is the single source of truth** for: URL path, display label, and nav order. The map looks like:
+### Adding images to wiki pages
+
+Use `[[assets/filename.jpg]]` to embed an inline image in any wiki page. This syntax renders
+as `<img src="/wiki/assets/filename.jpg">` in the HTML, not as a link. The `md2html.py` script
+handles this automatically.
+
+**To add a photo:**
+1. Create `wiki/assets/` subdirectory if it doesn't exist
+2. Copy image file: `cp /path/to/image.jpg wiki/assets/`
+3. Reference in markdown: `[[assets/image.jpg]]`
+4. Commit image to the hermes-pages repo, push, let Cloudflare Pages pick it up
+
+### Publishing flow (Gordons-specific)
+
+The end-to-end pipeline uses two repos:
+```
+/opt/data/hermes-pages/           ← GitHub: rousegordon-ops/hermes-pages (source + images)
+/opt/data/hermes-pages-repo/       ← working clone, md2html.py writes HTML output here
+```
+
+**Full publish sequence:**
+1. Copy image files to `hermes-pages/wiki/assets/` (create dir if missing)
+2. Edit markdown source in `hermes-pages/gordons-llm-wiki/`
+3. Run `python3 hermes-pages/scripts/md2html.py hermes-pages/gordons-llm-wiki`
+   (outputs to `/opt/data/hermes-pages-repo/wiki/`)
+4. Copy generated HTML back: `cp -r hermes-pages-repo/wiki/* hermes-pages/wiki/`
+5. `cd hermes-pages && git add -A && git commit -m "message" && git push`
+6. Cloudflare Pages auto-deploys in ~30s → live at `https://hermes-pages.rouse-gordon.workers.dev/wiki/`
+
+**`WIKI_PATH_MAP` is the single source of truth** for: URL path, display label, and nav order.
 ```python
 WIKI_PATH_MAP = {
     'gordon-rouse':      ('entities/gordon-rouse',      'Gordon Rouse'),
