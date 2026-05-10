@@ -288,6 +288,7 @@ Principles:
 - **Create child pages for deep dives by default.** Example: `business-opportunities` → `business-opportunities/ai-consulting` → `business-opportunities/engineering-knowledge-base-rag`.
 - **Split large sections.** If a page section exceeds ~300–500 words, includes multiple independent subtopics, or would be painful to skim in 30 seconds, split it into child pages.
 - **Preserve navigation.** Add links from parent to child, child back to parent, and related links between sibling/adjacent pages.
+- **Do not promote child pages into the top-level wiki index as peers.** Deep-dive child pages should be linked from the relevant parent hub section/item unless they are major standalone hubs themselves.
 - **Prefer small composable pages over long monoliths.** The wiki should become more navigable over time, not just longer.
 - **Refactor without asking when the structure is obvious.** If uncertain, make a reasonable structure and note it can be adjusted later.
 - **Keep raw/source facts distinct from synthesized conclusions.** Sources are evidence; wiki pages are curated synthesis.
@@ -581,6 +582,7 @@ If a `[[wikilink]]` in `index.md` doesn't have a map entry, `wiki_link()` falls 
   appearing once in a footnote doesn't warrant an entity page.
 - **Don't create pages without cross-references** — isolated pages are invisible. Every page must
   link to at least 2 other pages.
+- **Don't list child deep dives as top-level peers** — if a page lives under a parent hub path (e.g. `/wiki/business-opportunities/acquire-local-service-business`), link it from the relevant parent hub item/section, not as a peer in the root wiki index unless it has become a major standalone hub.
 - **Frontmatter is required** — it enables search, filtering, and staleness detection.
 - **Tags must come from the taxonomy** — freeform tags decay into noise. Add new tags to SCHEMA.md
   first, then use them.
