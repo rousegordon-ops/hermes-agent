@@ -238,7 +238,13 @@ Current nav order: Home → Gordon → KLA → Ventura → Sidekick → Fishing 
 - **`md2html.py` runs on import** — the old version had a top-level for-loop that executed immediately on `import`, which is dangerous if the script is ever imported elsewhere. The script now guards all work behind `if __name__ == '__main__'`. Never add top-level side effects to this script.
 - **Login redirect must NOT include `.html`** — the Cloudflare Pages static file server strips `.html` from URLs (returning a 307 to the extensionless version). The auth redirect in `build_page()` MUST use `/wiki/login?dst=...` not `/wiki/login.html?dst=...`. The script generates this inline; verify the generated HTML contains the extensionless URL.
 - **Old wiki source path** — the original script hardcoded `/opt/data/hermes-pages-repo/gordons-llm-wiki` as the markdown source. Always pass the source dir as the first argument: `python3 /opt/data/scripts/md2html.py /opt/data/wiki`.
-- **`[[page]]` wikilinks use `WIKI_PATH_MAP` + `wiki_link()` function** — A critical bug fix: wikilinks must produce `/wiki/<path>` links (not `/wiki/page.html` or `/page`). The current correct approach uses a `WIKI_PATH_MAP` dict at the top of `md2html.py`:
+- **Wiki page URLs, display names, and nav order** — All driven by `WIKI_PATH_MAP` in `md2html.py`. This map is the single source of truth for: URL path (what appears in href), display label (what the user sees), and nav order (items appear in `nav_items` list in insertion order). Changes to page names or paths require updating the map AND the `index.md` wikilink AND rebuilding. Missing map entries = wrong links and garbled labels.
+
+**Table rendering (md2html bug fix):** The old code emitted one `<table>` per row. The fix uses a `table_buf` list that collects consecutive pipe-delimited rows, then flushes them as a single `<table>` on the next non-table line. First row gets `<th>` cells. Current CSS: `border-collapse: separate; border-radius: 8px; overflow: hidden` on the `<table>`, header row distinct background, `tr:hover td` hover effect.
+
+**Git commit/push:** Use `execute_code` with subprocess — `terminal` blocks compound `&` commands. Set `GIT_TERMINAL_PROMPT=0` in the subprocess environment, not as a shell string prefix.
+
+**Overstating Gordon's projects:** Sidekick Studio is a hobby project. "A hobby project he's building" is safe; "a viable post-Ventura career option" gets corrected. Understate by default.
 
   ```python
   WIKI_PATH_MAP = {
