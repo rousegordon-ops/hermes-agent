@@ -39,9 +39,13 @@ Gordon wants the wiki maintained **passively** — he reads it in a browser at `
 **To update Gordon's wiki:**
 1. Edit/add static HTML in `/opt/data/hermes-pages/wiki/`
 2. Keep parent index/hub pages linked manually
-3. Copy wiki into deploy mirror: `rm -rf /opt/data/hermes-pages-files/wiki && cp -a /opt/data/hermes-pages/wiki /opt/data/hermes-pages-files/wiki`
-4. Run the direct Cloudflare Pages deploy command above
-5. Live in ~30 seconds at `https://hermes-pages-d55.pages.dev/wiki/`
+3. For deep dives, create semantic child pages under the parent hub (e.g. `/wiki/business-opportunities/acquire-local-service-business`) and link parent ↔ child
+4. Copy wiki into deploy mirror: `rm -rf /opt/data/hermes-pages-files/wiki && cp -a /opt/data/hermes-pages/wiki /opt/data/hermes-pages-files/wiki`
+5. Run the direct Cloudflare Pages deploy command above — project name is `hermes-pages`, not the domain suffix `hermes-pages-d55`
+6. Verify with browser-like curl: `curl -L -A 'Mozilla/5.0' -H 'Cookie: wiki_auth=GW2026' <live-url>` because Python `urllib` can get Cloudflare 403s
+7. Live in ~30 seconds at `https://hermes-pages-d55.pages.dev/wiki/`
+
+Detailed Gordon-specific notes: see `references/gordon-static-html-wiki-maintenance.md`.
 
 **To add the wiki to Obsidian later:** Clone `https://github.com/rousegordon-ops/hermes-pages`, point Obsidian at `gordons-llm-wiki/` subdirectory.
 
@@ -562,6 +566,9 @@ If a `[[wikilink]]` in `index.md` doesn't have a map entry, `wiki_link()` falls 
 
 ## Pitfalls
 
+- **Static HTML is the source of truth for Gordon's wiki.** Do not use the older markdown-generation publishing flow unless Gordon explicitly asks for it. See `references/gordon-static-html-wiki-maintenance.md` for the current direct-edit/deploy workflow.
+- **Cloudflare Pages project vs domain:** deploy with `--project-name hermes-pages`. `hermes-pages-d55` is the public Pages domain suffix; using it as the project name causes Wrangler `Project not found`.
+- **Cloudflare verification:** if Python `urllib` gets a 403 while verifying a live page, retry with `curl -L -A 'Mozilla/5.0' -H 'Cookie: wiki_auth=GW2026' ...` before assuming deploy failed.
 - **Never modify files in `raw/`** — sources are immutable. Corrections go in wiki pages.
 - **Always orient first** — read SCHEMA + index + recent log before any operation in a new session.
   Skipping this causes duplicates and missed cross-references.
