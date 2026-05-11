@@ -109,6 +109,7 @@ Cloudflare Pages auto-deploys on push — typically live within 30 seconds.
 
 - **High contrast:** Gordon dislikes low-contrast formatting. Use readable high-contrast text; do not put substantive content in dim gray.
 - **Concise public-site CTAs:** Avoid noisy CTA clusters and marketing jargon. For Pivotal Systems, keep the primary CTA simple (e.g. "Book a free consult") and avoid piling on parallel offers like "request an audit," trust pills, "human-in-the-loop," "SMB and semicap," etc. unless explicitly requested.
+- **Pivotal Systems positioning language:** Do not publicly pitch Gordon's target clients as "low urgency" or "non-urgent." That is useful internal client-selection language, but owners may hear it as "my business is unimportant" or "this supplier won't move fast." Public copy should say "established, document-heavy businesses," "important, process-driven work," "operationally steady," or "workflow-rich." For support boundaries, say something like: "I do not sell emergency IT support; I build durable operational systems that are quiet, explainable, and not constantly breaking."
 - **Public email exposure:** Do not expose Gordon's personal email in public site UI or client-side fallback text. For contact forms, route privately through Cloudflare Pages Functions/secrets such as `CONTACT_TO` and `RESEND_API_KEY`.
 - **GitHub link:** Use `⚙️ GitHub` button in the hero actions area when appropriate. Don't put it in the footer alongside contact info.
 - **Hero layout:** Avatar + name + role + company + tenure + status badge + action buttons.
