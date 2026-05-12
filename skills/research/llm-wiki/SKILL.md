@@ -57,7 +57,7 @@ Recommended pattern:
 6. Verify with browser-like curl: `curl -L -A 'Mozilla/5.0' -H 'Cookie: wiki_auth=GW2026' <live-url>` because Python `urllib` can get Cloudflare 403s
 7. Live in ~30 seconds at `https://hermes-pages-d55.pages.dev/wiki/`
 
-Detailed Gordon-specific notes: see `references/gordon-static-html-wiki-maintenance.md`. For reducing duplication by refactoring hub/child topology, see `references/gordon-static-html-wiki-topology-refactors.md`. For public standalone KBs linked from the Hermes Pages homepage, see `references/public-static-kb-on-hermes-pages.md`.
+Detailed Gordon-specific notes: see `references/gordon-static-html-wiki-maintenance.md`. For reducing duplication by refactoring hub/child topology, see `references/gordon-static-html-wiki-topology-refactors.md`. For public standalone KBs linked from the Hermes Pages homepage, see `references/public-static-kb-on-hermes-pages.md`. For hierarchy trade-offs and the recommended hybrid model for large engineering/team KBs, see `references/hierarchy-strategy-for-large-engineering-kbs.md`.
 
 **To add the wiki to Obsidian later:** Clone `https://github.com/rousegordon-ops/hermes-pages`, point Obsidian at `gordons-llm-wiki/` subdirectory.
 
@@ -291,12 +291,13 @@ a `_meta/topic-map.md` that groups pages by theme for faster navigation.
 
 ## Wiki Gardener Policy — Agent-Inferred Taxonomy & Hierarchy
 
-Do not make the user define the taxonomy. Infer a reasonable structure from the content, then refactor as the wiki grows.
+Do not make the user define the taxonomy. Infer a reasonable structure from the content, then refactor as the wiki grows. "Human maintained" means human-curated/overseen, not manual hierarchy upkeep by the user: for substantial updates, the agent should automatically re-evaluate whether the hierarchy needs to evolve.
 
 Principles:
 - **Parent pages are maps, not dumping grounds.** Keep hub/index pages concise and navigable. If a hub starts accumulating repeated details also covered by child pages, refactor it back into a map/portfolio page and move shared analysis into an intermediate child hub.
 - **Promote repeated or central topics to pages.** If a topic appears repeatedly, becomes a decision area, or the user asks for a deep dive, create a dedicated page.
 - **Use semantic containment for hierarchy:** broad domain → hub page; major bucket → child hub; specific idea/opportunity/company/source → child page. When two child pages share the same thesis/market framing, add a middle parent for the shared material instead of duplicating it in each page.
+- **No hard max-child rule yet, but use review thresholds.** There is no deterministic max children/depth optimizer in the current prompt-driven workflow. As a soft heuristic, keep direct children around 7±2 when possible; if a parent reaches 10+ direct children, consider introducing intermediate hubs. Keep root/homepage navigation around 6–10 major hubs for scannability.
 - **Create child pages for deep dives by default.** Example: `business-opportunities` → `business-opportunities/ai-consulting-workflow-automation` → `business-opportunities/ai-consulting-workflow-automation/manufacturing-semicap-workflow-automation`.
 - **Split large sections.** If a page section exceeds ~300–500 words, includes multiple independent subtopics, duplicates another page, or would be painful to skim in 30 seconds, split it into child pages.
 - **Preserve navigation.** Add links from parent to child, child back to parent, and related links between sibling/adjacent pages.
