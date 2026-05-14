@@ -34,10 +34,12 @@ When Gordon asks to create a new "LLM wiki knowledge base" and also says it shou
 Recommended pattern:
 1. Research broadly first; for deep technical domains, delegate parallel research streams (fundamentals, latest research, applied/commercial context) and synthesize before writing.
 2. Build a hub page (`index.html`) plus 6–10 concise child pages, not one giant article.
-3. Include a `sources.html` reading list with source titles and URLs.
-4. Keep the design high-contrast and navigable with a sticky side nav.
-5. Validate internal links locally before deploying.
-6. Deploy with the direct Cloudflare Pages workflow from `html-to-cloudflare`, then verify homepage card and representative child pages live.
+3. Make hub cards clickable drilldowns: the entire card should be an `<a>`/link to the relevant child page, not just a small "read more" text link. Cards should visually indicate clickability and preserve keyboard accessibility.
+4. Link tool and software product references inline. When mentioning a concrete tool, vendor product, open-source project, library, SaaS, CLI, framework, or platform, link the first substantive mention to the official product/docs/repo page when available; prefer official URLs over generic search results.
+5. Include a `sources.html` reading list with source titles and URLs.
+6. Keep the design high-contrast and navigable with a sticky side nav.
+7. Validate internal links locally before deploying, including that every hub card target resolves and that important tool/software references have outbound links.
+8. Deploy with the direct Cloudflare Pages workflow from `html-to-cloudflare`, then verify homepage card and representative child pages live.
 
 **How it works now for Gordon:**
 - Preferred homepage: `https://hermes-pages-d55.pages.dev/` (links to Wiki and Profession)
@@ -347,6 +349,8 @@ When the user provides a source (URL, file, paste), integrate it into the wiki:
    - First classify the page as **root-level hub**, **child/deep-dive**, or **leaf/source note**.
    - Add only root-level hubs to the root `index.md`.
    - For child/deep-dive pages, do **not** add them as peers in the root index; link them from the relevant parent hub section/item and add a breadcrumb/back-link from child to parent.
+   - In static HTML hubs, make cards clickable drilldowns: wrap the whole card in an anchor (`<a class="card" href="child-page.html">…</a>` or equivalent), not just the title or CTA. Preserve visible focus states and meaningful accessible labels.
+   - Link references to concrete tools and software products on first substantive mention, using official product/docs/repo URLs when available.
    - Update the "Total pages" count and "Last updated" date in index header when using markdown index files.
    - Append to `log.md`: `## [YYYY-MM-DD] ingest | Source Title`
    - List every file created or updated in the log entry
