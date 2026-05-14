@@ -780,7 +780,17 @@ When asked to explain or comment the differences between `rousegordon-ops/hermes
 
 The daily cost report (`scripts/cost_report.py`) sends balance + spend + request metrics to Telegram. Request tracking uses a local JSONL log appended by a gateway hook — OpenRouter's analytics API requires a management key most users don't have. See `references/gateway-request-tracking.md` for the full pattern (hook location, JSONL schema, sliding-window algorithm, data sources considered).
 
-### Source Watcher Broken-Code Gate
+### Fallback Status Messages — Why They May Not Reach Telegram
+
+`_emit_status()` fires two parallel paths: `_vprint(force=True)` for CLI, and `status_callback("lifecycle", message)` for gateway. The gateway bridges this via `_status_callback_sync → adapter.send()` — but the Telegram adapter's `send()` method is designed for final response delivery, not inline status updates.
+
+**The streaming-only delivery problem**: The gateway's `GatewayStreamConsumer` handles status/lifecycle messages through commentary paths. When fallback fires mid-stream, the status message is emitted before the stream starts or between segments. The `_send_commentary()` path can deliver these as interim messages, but only when the stream consumer is active.
+
+**What this means for Gordon**: When GPT-5.5 hits a rate limit and fallback fires, you may see only generic messages. Patches at run_agent.py lines ~11995 and ~12324 add the error reason to these messages. But if Telegram still doesn't show them, the root cause is the non-streaming status delivery gap — status callbacks get lost when there's no active stream to attach them to.
+
+See `references/gateway-request-tracking.md` for the full pattern (hook location, JSONL schema, sliding-window algorithm, data sources considered).
+
+### Fallback Status Messages — Why They May Not Reach Telegram
 
 `scripts/source_watcher.py` gates every commit before push by running `ruff check --select F821 --no-fix` only on staged Python files; current Ruff still reports parser failures (`invalid-syntax`) under this command, while `E999` is no longer selectable in Ruff 0.15+. This catches undefined names (`F821`, e.g. `NameError` from an out-of-scope variable) and syntax errors without broad style rules that could create false positives. If ruff fails, the watcher skips commit+push, leaves the changes in place, appends full details plus the staged diff to `/opt/data/logs/watcher-blocked.log`, and sends a Telegram alert to `$TELEGRAM_HOME_CHANNEL`; temporarily bypass only with `HERMES_WATCHER_SKIP_LINT=1`.
 
