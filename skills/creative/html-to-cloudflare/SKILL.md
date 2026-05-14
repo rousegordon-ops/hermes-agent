@@ -62,18 +62,27 @@ GIT_TERMINAL_PROMPT=0 git push origin main
 
 ## Key repos and URLs
 
-| Repo | URL |
-|------|-----|
-| Pages site | `https://github.com/rousegordon-ops/hermes-pages` |
-| Current public Pages deployment | `https://hermes-pages-d55.pages.dev/` |
-| Cloudflare Pages project name | `hermes-pages` |
-| Preview deploy host pattern | `https://<hash>.hermes-pages-d55.pages.dev` |
-| Hermes-agent repo | `https://github.com/rousegordon-ops/hermes-agent` |
-| Gordon's GitHub org/user | `https://github.com/rousegordon-ops` |
+| Repo | URL | Project name | Source dir |
+|------|-----|--------------|------------|
+| hermes-pages repo | `https://github.com/rousegordon-ops/hermes-pages` | `hermes-pages` | `/opt/data/hermes-pages` |
+| Gordon's SW engineering wiki | `https://github.com/rousegordon-ops/hermes-pages` | `gordon-pages` | `/opt/data/gordon-pages` |
+| Current public hermes-pages deployment | `https://hermes-pages-d55.pages.dev/` | `hermes-pages` | `/opt/data/hermes-pages` |
+| Current public gordon-pages deployment | `https://gordon-pages.pages.dev/` | `gordon-pages` | `/opt/data/gordon-pages` |
+| Hermes-agent repo | `https://github.com/rousegordon-ops/hermes-agent` | — | — |
+| Gordon's GitHub org/user | `https://github.com/rousegordon-ops` | — | — |
 
-## Current direct deploy workflow for `/opt/data/hermes-pages`
+**⚠️ Two separate Cloudflare Pages projects.** Deleting or deploying files affects only the project whose `--project-name` matches. Always verify `wrangler pages project list` output if unsure which project a source dir maps to.
 
-When editing Gordon's live homepage, wiki, Pivotal Systems site, public career/vocation pages, or small static apps with Pages Functions, the canonical working tree is usually `/opt/data/hermes-pages` and deploys are direct Cloudflare Pages uploads — not markdown regeneration and not the old workers.dev publish flow.
+## Current direct deploy workflow
+
+| Deployment target | Source dir | Deploy command |
+|-----------------|-----------|----------------|
+| hermes-pages-d55.pages.dev | `/opt/data/hermes-pages` | `wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages` |
+| gordon-pages.pages.dev | `/opt/data/gordon-pages` | `wrangler pages deploy /opt/data/gordon-pages --project-name gordon-pages` |
+
+Always use `npx -y -p node@22 -p wrangler wrangler pages deploy <dir> --project-name <project> --commit-dirty=true`.
+
+**Confirm project before destructive operations.** If asked to delete a wiki or site, verify the source directory AND the Cloudflare project name before proceeding. A URL like `https://gordon-pages.pages.dev/` does NOT map to `/opt/data/hermes-pages/` — they are separate Cloudflare Pages projects.
 
 For LLM-backed static apps, especially apps that call a Cloudflare Pages Function and should leverage an existing local/site knowledge base, follow `references/llm-backed-static-apps.md`: keep secrets server-side, include a fallback/example mode, sanitize model JSON, surface KB grounding in the UI, run syntax checks, deploy, and verify the canonical URL plus API response.
 
