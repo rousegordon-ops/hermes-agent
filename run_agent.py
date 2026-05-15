@@ -40,7 +40,13 @@ import threading
 from types import SimpleNamespace
 import urllib.request
 import uuid
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Forward-reference targets for string type annotations in this module
+    # (e.g. `Optional["RateLimitState"]`).  Without this block, ruff's F821
+    # gate flags them as undefined and blocks any commit touching the file.
+    from agent.rate_limit_tracker import RateLimitState  # noqa: F401
 from urllib.parse import urlparse, parse_qs, urlunparse
 # NOTE: `from openai import OpenAI` is deliberately NOT at module top — the
 # SDK pulls ~240 ms of imports. We expose `OpenAI` as a thin proxy object
@@ -7549,8 +7555,7 @@ class AIAgent:
                 )
 
             self._emit_status(
-                f"🔄 Primary model failed — switching to fallback: "
-                f"{fb_model} via {fb_provider}"
+                f"🔄 Switching to {fb_model} via {fb_provider}"
             )
             logging.info(
                 "Fallback activated: %s → %s (%s)",
