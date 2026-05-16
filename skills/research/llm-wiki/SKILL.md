@@ -23,9 +23,35 @@ Contradictions have already been flagged. Synthesis reflects everything ingested
 **Division of labor:** The human curates sources and directs analysis. The agent
 summarizes, cross-references, files, and maintains consistency.
 
-## Gordon's Wiki — Passive Maintenance Mode
+## Gordon's Wiki — HTML Native (2026-05-10 onward)
 
-Gordon wants the wiki maintained **passively** — he reads it in a browser at `https://hermes-pages.rouse-gordon.workers.dev/wiki/`, I file updates during our conversations without prompting. He doesn't want to be asked "should I add this?" every time.
+Gordon retired the markdown pipeline. Wiki pages are written **directly as static HTML** at `/opt/data/hermes-pages/wiki/`. No `md2html.py` conversion step — I edit HTML and push. The markdown wiki at `/opt/data/wiki/` has been deleted.
+
+**Location:** `/opt/data/hermes-pages/wiki/`
+
+**Structure:**
+- `index.html` — wiki hub (auth-protected, lists all pages)
+- `login.html` — auth form
+- `entities/` — person/org pages
+- `concepts/` — topic pages
+- `hobbies/` — hobby pages
+- `projects/` — project pages
+- `raw/` — source articles
+- `schema.html`, `log.html` — meta pages
+
+**To add a page:**
+1. Write HTML directly to the appropriate subdirectory
+2. Add link in `index.html` under the correct section
+3. Commit and push: `cd /opt/data/hermes-pages && git add . && git commit -m "..." && GIT_TERMINAL_PROMPT=0 git push origin main`
+4. Cloudflare Pages auto-deploys in ~30s
+
+**Auth:** email `rouse.gordon@gmail.com`, password `GordonWiki2026!`, cookie `wiki_auth=GW2026`
+
+**Deploy verification:** `curl -L -A 'Mozilla/5.0' https://hermes-pages-d55.pages.dev/wiki/...`
+
+**Do NOT:** regenerate from `/opt/data/hermes-pages/gordons-llm-wiki/` markdown — that was the old pipeline and is now stale.
+
+**LLM wiki skill still useful for:** research synthesis, cross-referencing, adding structured entries, linting existing HTML pages.
 
 ### Public standalone knowledge bases on Hermes Pages
 
