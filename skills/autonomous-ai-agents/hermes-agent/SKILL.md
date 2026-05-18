@@ -804,6 +804,10 @@ See `references/gateway-request-tracking.md` for the full pattern (hook location
 
 See `references/gordon-wiki-architecture.md` for Gordon's wiki layout, Cloudflare Pages direct deploy setup, and publishing workflow. Key: Cloudflare token invalid → 401 from API → get fresh token from Cloudflare Dashboard → update Railway env var.
 
+### Gordon's gbrain vs Hermes native memory paths
+
+See `references/gbrain-memory-path-separation.md` before renaming or discussing `/opt/data/memories`, `/opt/data/gbrain`, or original gbrain layout. Key: `/opt/data/memories` is Hermes native memory because `HERMES_HOME=/opt/data`; original gbrain uses `~/.gbrain/brain.pglite` for the DB and separate registered source paths.
+
 ### Key Rules
 
 - **Never break prompt caching** — don't change context, tools, or system prompt mid-conversation
