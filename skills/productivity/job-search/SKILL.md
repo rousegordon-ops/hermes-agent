@@ -1,6 +1,6 @@
 ---
 name: job-search
-description: "Career research and job monitoring for Gordon Rouse — Ventur area tech jobs, daily reports, company deep-dives."
+description: "Career research and job monitoring for Gordon Rouse — Ventura area tech jobs, daily reports, company deep-dives."
 version: 1.0.0
 author: Gordon Rouse
 license: MIT
@@ -18,7 +18,7 @@ Career research, employer analysis, and automated job monitoring for Gordon's re
 - **Current:** Director of Engineering at KLA (semiconductor capital equipment), software + systems engineering + program management background
 - **Plan:** Relocate to Ventura (1920 E Linda Vista Ave) within 1 year; open to IC or management roles
 - **Preferences:** IC track preferred, but will consider management. No Verilog/VHDL/firmware/hardware-description. No adtech (The Trade Desk excluded).
-- **Commute threshold:** ~30 min max
+- **Commute threshold:** ~30 min max. Exclude in-office/hybrid roles in Agoura Hills; Ventura ↔ Agoura Hills is too long for a regular commute. Remote roles based there are acceptable.
 - **Work style:** Concise. Wants direct answers, not explanations. Check memory for full preferences.
 
 ## Key Employers (Ventura Area)
@@ -57,7 +57,7 @@ Every weekday morning (Mon-Fri), search for senior-level roles at Northrop Grumm
 
 **Include:** Senior Software Engineer, Staff Engineer, Principal Engineer, Engineering Manager, Program Manager, Systems Engineer, Software Engineering Manager, Director-level roles.
 
-**Exclude:** The Trade Desk, Verilog/VHDL/FPGA/firmware, embedded hardware bringup, jobs requiring active clearance (note if clearance may be needed later).
+**Exclude:** The Trade Desk, Verilog/VHDL/FPGA/firmware, embedded hardware bringup, jobs requiring active clearance (note if clearance may be needed later), and in-office/hybrid Agoura Hills roles. Agoura Hills may only appear if the role is truly remote.
 
 **For each job:** Company | Title | City | Salary if available | Direct URL | 1-line fit assessment.
 
@@ -83,7 +83,7 @@ Keep under 500 words.
 
 ## Company Deep-Dive Workflow
 
-1. Identify target companies (commute <30 min from home)
+1. Identify target companies (commute <30 min from home). Treat in-office/hybrid Agoura Hills as out-of-bounds despite being KLA-adjacent; Ventura ↔ Agoura Hills is too long for Gordon's daily commute target. Truly remote roles based there are acceptable.
 2. Check careers pages directly (Indeed, LinkedIn, company job boards)
 3. Cross-reference salary via ZipRecruiter, Glassdoor, Indeed
 4. Filter by role type (IC vs management), domain (exclude hardware-description, adtech)
