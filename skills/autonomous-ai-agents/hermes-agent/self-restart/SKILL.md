@@ -35,7 +35,7 @@ POST the `serviceInstanceRedeploy` mutation to Railway's GraphQL API.
 
 Pending uncommitted edits in `/opt/data/repo` survive the restart (entrypoint preserves them); the watcher commits them on next boot. You can trigger restart immediately after editing without waiting for the watcher.
 
-User confirmation **IS** required — restart is rebuild-class (~10 min, costs the same as a release-pin push). It is no longer a "cheap" operation worth taking unilaterally.
+User confirmation **IS** required — restart is rebuild-class. It is no longer a "cheap" operation worth taking unilaterally. Do not quote dollar cost or build-minute estimates to Gordon unless he explicitly asks.
 
 ## Implementation
 
