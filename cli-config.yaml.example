@@ -466,6 +466,21 @@ session_reset:
 # explicitly want one shared "room brain" per group/channel.
 group_sessions_per_user: true
 
+# =============================================================================
+# Cross-session context (recent exchanges)
+# =============================================================================
+# When session_reset fires (idle/daily) or the gateway restarts, the agent's
+# message history is gone — the user often experiences this as "Hermes
+# doesn't know what I was talking about." This block reads the N most
+# recent user/assistant exchange pairs from prior transcripts and injects
+# them into the system prompt for every message, wrapped with a "consider
+# only if relevant" instruction so they behave as reference material
+# rather than the active conversation thread.
+#
+# Set to 0 to disable.
+gateway:
+  previous_exchanges_window: 5
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Gateway Streaming
 # ─────────────────────────────────────────────────────────────────────────────
