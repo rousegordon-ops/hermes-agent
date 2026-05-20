@@ -7985,6 +7985,47 @@ class GatewayRunner:
             session_entry.was_auto_reset = False
             session_entry.auto_reset_reason = None
 
+        # Cross-session "recent exchanges" injection. When the session is
+        # fresh (brand new, auto-reset, or /reset), the message history is
+        # empty — the agent has no idea what the user was just discussing.
+        # Inject the last N user/assistant pairs from this source's session
+        # lineage as reference material in the system prompt. Gated on
+        # _is_new_session so ongoing sessions don't pay the disk-I/O cost
+        # (their history is already in `messages` via load_transcript below).
+        if _is_new_session:
+            try:
+                _rec_pcfg = _pcfg if isinstance(_pcfg, dict) else _load_gateway_config()
+                _n_recent = int(
+                    (_rec_pcfg.get("gateway") or {}).get(
+                        "previous_exchanges_window", 5
+                    )
+                )
+            except (TypeError, ValueError, NameError):
+                _n_recent = 5
+            if _n_recent > 0:
+                try:
+                    from gateway.recent_exchanges import collect_recent_exchanges
+                    recent_block = collect_recent_exchanges(
+                        session_store=self.session_store,
+                        source=source,
+                        n=_n_recent,
+                    )
+                    if recent_block:
+                        context_prompt = (
+                            (context_prompt + "\n\n" + recent_block)
+                            if context_prompt
+                            else recent_block
+                        )
+                        logger.debug(
+                            "[recent_exchanges] injected %d chars (n=%d)",
+                            len(recent_block), _n_recent,
+                        )
+                except Exception as e:
+                    logger.info(
+                        "[recent_exchanges] injection failed (non-fatal): %s",
+                        e, exc_info=True,
+                    )
+
         # Auto-load skill(s) for topic/channel bindings (Telegram DM Topics,
         # Discord channel_skill_bindings).  Supports a single name or ordered list.
         # Only inject on NEW sessions — ongoing conversations already have the

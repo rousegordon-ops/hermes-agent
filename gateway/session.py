@@ -16,8 +16,14 @@ import threading
 import uuid
 from pathlib import Path
 from datetime import datetime, timedelta
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
+
+# Maximum number of historical session_ids retained per session_key for the
+# cross-session "recent exchanges" feature. Old IDs beyond this cap are
+# dropped from the lineage (their transcripts persist on disk regardless,
+# they just stop being discoverable via SessionStore).
+SESSION_LINEAGE_MAX = 20
 
 logger = logging.getLogger(__name__)
 
@@ -491,6 +497,13 @@ class SessionEntry:
     resume_reason: Optional[str] = None  # e.g. "restart_timeout"
     last_resume_marked_at: Optional[datetime] = None
 
+    # Lineage: session_ids that previously held this session_key, newest-first
+    # (most recently displaced first). Populated when a session is auto-reset
+    # (idle/daily) or /reset. Capped at SESSION_LINEAGE_MAX entries; oldest
+    # are dropped silently when the cap is exceeded. Their transcript files
+    # remain on disk but are no longer discoverable through this entry.
+    previous_session_ids: List[str] = field(default_factory=list)
+
     def to_dict(self) -> Dict[str, Any]:
         result = {
             "session_key": self.session_key,
@@ -521,6 +534,7 @@ class SessionEntry:
             "was_auto_reset": self.was_auto_reset,
             "auto_reset_reason": self.auto_reset_reason,
             "reset_had_activity": self.reset_had_activity,
+            "previous_session_ids": list(self.previous_session_ids),
         }
         if self.origin:
             result["origin"] = self.origin.to_dict()
@@ -573,6 +587,7 @@ class SessionEntry:
             was_auto_reset=data.get("was_auto_reset", False),
             auto_reset_reason=data.get("auto_reset_reason"),
             reset_had_activity=data.get("reset_had_activity", False),
+            previous_session_ids=list(data.get("previous_session_ids", []) or []),
         )
 
 
@@ -914,6 +929,15 @@ class SessionStore:
                 auto_reset_reason = None
                 reset_had_activity = False
 
+            # Capture the lineage of the entry we're about to replace (if any)
+            # so cross-session features can walk back through prior transcripts.
+            prev_lineage: List[str] = []
+            if db_end_session_id:
+                old_entry = self._entries[session_key]
+                prev_lineage = (
+                    [old_entry.session_id] + list(old_entry.previous_session_ids)
+                )[:SESSION_LINEAGE_MAX]
+
             # Create new session
             session_id = f"{now.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
 
@@ -929,6 +953,7 @@ class SessionStore:
                 was_auto_reset=was_auto_reset,
                 auto_reset_reason=auto_reset_reason,
                 reset_had_activity=reset_had_activity,
+                previous_session_ids=prev_lineage,
             )
 
             self._entries[session_key] = entry
@@ -1144,6 +1169,9 @@ class SessionStore:
 
             now = _now()
             session_id = f"{now.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+            prev_lineage = (
+                [old_entry.session_id] + list(old_entry.previous_session_ids)
+            )[:SESSION_LINEAGE_MAX]
 
             new_entry = SessionEntry(
                 session_key=session_key,
@@ -1155,6 +1183,7 @@ class SessionStore:
                 platform=old_entry.platform,
                 chat_type=old_entry.chat_type,
                 is_fresh_reset=True,
+                previous_session_ids=prev_lineage,
             )
 
             self._entries[session_key] = new_entry
@@ -1248,6 +1277,31 @@ class SessionStore:
 
         return entries
     
+    def list_transcripts_for_source(
+        self, source: SessionSource, limit: int = SESSION_LINEAGE_MAX
+    ) -> List[Path]:
+        """Return transcript paths for this source's session lineage, newest first.
+
+        Includes the current session_id followed by any historical session_ids
+        captured in `previous_session_ids` when prior sessions were auto-reset
+        (idle/daily) or manually /reset. Paths that no longer exist on disk
+        are skipped. Returns an empty list when no entry exists for this
+        source — which happens before the first message ever lands.
+        """
+        with self._lock:
+            self._ensure_loaded_locked()
+            session_key = self._generate_session_key(source)
+            entry = self._entries.get(session_key)
+            if entry is None:
+                return []
+            ids = [entry.session_id] + list(entry.previous_session_ids)
+        paths: List[Path] = []
+        for sid in ids[:max(0, limit)]:
+            p = self.get_transcript_path(sid)
+            if p.exists():
+                paths.append(p)
+        return paths
+
     def get_transcript_path(self, session_id: str) -> Path:
         """Get the path to a session's legacy transcript file."""
         return self.sessions_dir / f"{session_id}.jsonl"

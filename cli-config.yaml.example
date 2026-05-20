@@ -521,6 +521,24 @@ session_reset:
 # explicitly want one shared "room brain" per group/channel.
 group_sessions_per_user: true
 
+# =============================================================================
+# Cross-session context (recent exchanges)
+# =============================================================================
+# When a session_reset fires (idle/daily) or the user runs /reset, the new
+# session's `messages` list starts empty — the agent has no memory of what
+# the user was just discussing. This block reads the last N user/assistant
+# exchange pairs from this source's session lineage (current + historical
+# session_ids, scoped by SessionStore so other users' chats are never read)
+# and injects them into the system prompt as reference material, wrapped
+# with "consider only if relevant to the current message" framing.
+#
+# Only fires on the first message of a new/reset session; ongoing sessions
+# already have their history in `messages` and skip the injection.
+#
+# Set previous_exchanges_window to 0 to disable.
+gateway:
+  previous_exchanges_window: 5
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Gateway Streaming
 # ─────────────────────────────────────────────────────────────────────────────
