@@ -4679,6 +4679,29 @@ class GatewayRunner:
             session_entry.was_auto_reset = False
             session_entry.auto_reset_reason = None
 
+        # Inject the most recent user/assistant exchange pairs from prior
+        # transcripts so the agent has continuity across session boundaries
+        # (inactivity reset, daily reset, restart, etc.). The block is
+        # appended to context_prompt with delimiters and an instruction
+        # noting it is reference material — the model should consult it
+        # only if relevant to the current message.
+        try:
+            _rec_pcfg = _pcfg if isinstance(_pcfg, dict) else _load_gateway_config()
+            _n_recent = int((_rec_pcfg.get("gateway") or {}).get("previous_exchanges_window", 5))
+        except (TypeError, ValueError, NameError):
+            _n_recent = 5
+        if _n_recent > 0:
+            try:
+                from gateway.recent_exchanges import collect_recent_exchanges
+                recent_block = collect_recent_exchanges(
+                    sessions_dir=self.session_store.sessions_dir,
+                    n=_n_recent,
+                )
+                if recent_block:
+                    context_prompt = (context_prompt + "\n\n" + recent_block) if context_prompt else recent_block
+            except Exception as e:
+                logger.debug("recent_exchanges injection failed (non-fatal): %s", e)
+
         # Auto-load skill(s) for topic/channel bindings (Telegram DM Topics,
         # Discord channel_skill_bindings).  Supports a single name or ordered list.
         # Only inject on NEW sessions — ongoing conversations already have the
