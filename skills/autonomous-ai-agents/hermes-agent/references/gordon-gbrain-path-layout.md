@@ -132,6 +132,48 @@ Expected healthy signals:
 - `gbrain dream --phase lint --json` shows `status: clean`, `brain_dir: /opt/data/gbrain-content`, and `0 remaining`.
 - `gbrain orphans --json` shows `total_orphans: 0`.
 
+## Upstream source pulls / fast-forwards
+
+When Gordon asks to pull specific upstream gbrain commits, operate in `/opt/data/repos/gbrain` and verify whether the requested SHAs are already in the linear upstream path:
+
+```bash
+cd /opt/data/repos/gbrain
+git fetch origin --tags --prune
+for c in <sha1> <sha2>; do git show --stat --oneline --no-renames "$c" | sed -n '1,80p'; done
+git log --oneline --ancestry-path HEAD..<target-sha>
+git merge-base --is-ancestor HEAD <target-sha> && git merge --ff-only <target-sha>
+```
+
+If a fast-forward fails with permission errors under root-owned test fixtures (observed: `test/regressions/`), avoid fighting ownership from the Hermes user. Reset the partial checkout, then use sparse checkout to exclude the unwritable fixture directory and retry the fast-forward:
+
+```bash
+git reset --hard HEAD
+git clean -fd
+stat -c '%A %U:%G %n' test/regressions 2>/dev/null || true
+
+git sparse-checkout init --no-cone
+printf '/*\n!test/regressions/\n' > .git/info/sparse-checkout
+git read-tree -mu HEAD || true
+git merge --ff-only <target-sha>
+```
+
+After the pull:
+
+```bash
+export PATH=/opt/data/.bun/bin:$PATH GBRAIN_HOME=/opt/data
+bun install
+gbrain version
+gbrain apply-migrations --yes --non-interactive
+git diff --check -- .
+git grep -n -E '^(<<<<<<<|=======|>>>>>>>)($| )' -- ':!llms-full.txt' ':!CHANGELOG.md' ':!CLAUDE.md' || true
+bun test <targeted test files>
+gbrain doctor --fast
+gbrain dream
+git status --short
+```
+
+`llms-full.txt`, `CHANGELOG.md`, and some generated/docs files may legitimately contain conflict-marker strings as quoted historical content; prefer anchored `git grep` with exclusions instead of a naive whole-tree text scan.
+
 ## Pitfalls
 
 - Do not use `/opt/data/memories` as a durable gbrain content path; it collides with Hermes native memory and confuses future sessions.
@@ -139,3 +181,4 @@ Expected healthy signals:
 - Do not assume `/opt/data/.gbrain` is writable; check ownership first.
 - Original gbrain's “brain” is a DB/runtime concept, not merely a markdown folder named `gbrain`.
 - Do not trust a clean `gbrain lint /opt/data/gbrain-content` alone; also verify `gbrain dream --phase lint --json` because dream may be reading a different `sync.repo_path`.
+- If sparse checkout is enabled to work around root-owned fixtures, mention it in the final status; future full test-suite runs may need ownership fixed or the sparse exclusion removed.

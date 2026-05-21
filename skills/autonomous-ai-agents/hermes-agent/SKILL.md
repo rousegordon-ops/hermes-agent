@@ -346,7 +346,7 @@ When pulling Telegram/gateway, cron, provider-fallback, memory, or compression f
 
 ### Gordon GBrain path layout
 
-For Gordon's Railway instance, keep Hermes native memory and GBrain concerns separated like upstream gbrain: native memory at `/opt/data/memories`, durable markdown content source at `/opt/data/gbrain-content`, source checkout at `/opt/data/repos/gbrain`, and runtime/config/DB convention under `/opt/data/.gbrain`. See `references/gordon-gbrain-path-layout.md` for migration/verification commands, dream health cleanup, `sync.repo_path` pitfalls, and root-owned legacy path pitfalls.
+For Gordon's Railway instance, keep Hermes native memory and GBrain concerns separated like upstream gbrain: native memory at `/opt/data/memories`, durable markdown content source at `/opt/data/gbrain-content`, source checkout at `/opt/data/repos/gbrain`, and runtime/config/DB convention under `/opt/data/.gbrain`. See `references/gordon-gbrain-path-layout.md` for migration/verification commands, dream health cleanup, upstream gbrain fast-forward workflow, `sync.repo_path` pitfalls, sparse-checkout workaround for root-owned test fixtures, and root-owned legacy path pitfalls.
 
 ### Providers
 
