@@ -38,7 +38,7 @@ Fetches Open-Meteo forecast (no API key), emits Markdown per location:
 
 ## Cron Setup
 
-**Must use `--deliver telegram`** (not `origin` — origin delivers to the cron runner's message history, not to Gordon).
+**Must use `--deliver telegram` for Gordon** (not `origin` — origin delivers to the cron runner's message history, not to Gordon).
 
 ```bash
 # Fire at 6 AM PT = 13:00 UTC
@@ -49,6 +49,23 @@ Capture stdout and send the weather brief as a Telegram message to Gordon." \
   --schedule "0 13 * * *" \
   --deliver telegram
 ```
+
+### Additional Telegram recipients
+
+For another person, create a separate cron using direct-chat delivery: `--deliver telegram:<chat_id>`. Do not change Gordon's existing job unless asked; duplicate the same script/prompt so each recipient has an independently manageable cron.
+
+Example for Megan:
+
+```bash
+cronjob create \
+  --name "Megan morning weather" \
+  --prompt "Run: python3 /opt/data/skills/productivity/daily-weather-brief/scripts/format_brief_weather.py
+Capture stdout and send the weather brief as the final response. This is for Megan." \
+  --schedule "0 13 * * *" \
+  --deliver telegram:8763410743
+```
+
+After creating, verify with `cronjob list` that the new job is enabled, scheduled at `0 13 * * *`, and has `deliver: telegram:<chat_id>`.
 
 ## Tokens
 
