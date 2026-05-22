@@ -77,10 +77,12 @@ Expected:
 When Gordon asks about the nightly “GBrain Dream” message or to fix dream warnings, inspect the latest cron session first (usually `/opt/data/sessions/session_cron_911ffb23e86b_*.json`) and then rerun explicitly:
 
 ```bash
-export PATH=/opt/data/.bun/bin:$PATH GBRAIN_HOME=/opt/data
+export PATH=/opt/data/.bun/bin:$PATH HOME=/opt/data
 cd /opt/data/repos/gbrain
 gbrain dream 2>&1
 ```
+
+Use `HOME=/opt/data` for Gordon's Railway runtime checks. In practice, `GBRAIN_HOME=/opt/data` alone can still leave the CLI looking under `/opt/data/home/.gbrain`, which makes `gbrain doctor`/`dream` report “No brain configured” even though `/opt/data/.gbrain/config.json` exists.
 
 Important discovered behavior:
 
@@ -98,15 +100,15 @@ Important discovered behavior:
 The successful cleanup pattern was:
 
 ```bash
-export PATH=/opt/data/.bun/bin:$PATH GBRAIN_HOME=/opt/data
+export PATH=/opt/data/.bun/bin:$PATH HOME=/opt/data
 
 # Confirm what dream will lint/sync.
 gbrain config get sync.repo_path
 
 # Lint the real content source, not native memory.
 gbrain lint /opt/data/gbrain-content
+```
 
-# Add/fix YAML frontmatter on content pages and remove placeholder dates.
 # Then ensure the content source is a git repo.
 git -C /opt/data/gbrain-content rev-parse --is-inside-work-tree || git -C /opt/data/gbrain-content init
 
@@ -160,17 +162,20 @@ git merge --ff-only <target-sha>
 After the pull:
 
 ```bash
-export PATH=/opt/data/.bun/bin:$PATH GBRAIN_HOME=/opt/data
+export PATH=/opt/data/.bun/bin:$PATH HOME=/opt/data
 bun install
+bun run build
 gbrain version
 gbrain apply-migrations --yes --non-interactive
 git diff --check -- .
 git grep -n -E '^(<<<<<<<|=======|>>>>>>>)($| )' -- ':!llms-full.txt' ':!CHANGELOG.md' ':!CLAUDE.md' || true
-bun test <targeted test files>
+bun run test
 gbrain doctor --fast
 gbrain dream
 git status --short
 ```
+
+If `bun run test` gets killed in Railway due to memory/parallel-shard pressure, do not treat the raw shard output as a code failure by default. Inspect `.context/test-failures.log`, rerun any explicit `(fail)` tests/files directly with `bun test <file>`, and report the distinction between environment kill (`rc=137`/`Killed`) and a reproducible test failure. Avoid bare `bun test` as the full-suite command here; it bypasses the repo’s `scripts/run-unit-parallel.sh` wrapper and is more likely to flood the container.
 
 `llms-full.txt`, `CHANGELOG.md`, and some generated/docs files may legitimately contain conflict-marker strings as quoted historical content; prefer anchored `git grep` with exclusions instead of a naive whole-tree text scan.
 
@@ -179,6 +184,9 @@ git status --short
 - Do not use `/opt/data/memories` as a durable gbrain content path; it collides with Hermes native memory and confuses future sessions.
 - Do not do upstream gbrain merge/pull work in `/opt/data/gbrain`; it may be a root-owned legacy checkout. Prefer `/opt/data/repos/gbrain`.
 - Do not assume `/opt/data/.gbrain` is writable; check ownership first.
+- Do not assume `GBRAIN_HOME=/opt/data` selects `/opt/data/.gbrain` in this Railway environment; for runtime verification, set `HOME=/opt/data` as well.
+- For upstream source pulls, build after install (`bun run build`) so `/opt/data/.bun/bin/gbrain` reports the newly pulled version before migration/doctor checks.
+- Treat `rc=137` or `Killed` during full parallel tests as possible container memory pressure; rerun named failures directly before calling it a regression.
 - Original gbrain's “brain” is a DB/runtime concept, not merely a markdown folder named `gbrain`.
 - Do not trust a clean `gbrain lint /opt/data/gbrain-content` alone; also verify `gbrain dream --phase lint --json` because dream may be reading a different `sync.repo_path`.
 - If sparse checkout is enabled to work around root-owned fixtures, mention it in the final status; future full test-suite runs may need ownership fixed or the sparse exclusion removed.
