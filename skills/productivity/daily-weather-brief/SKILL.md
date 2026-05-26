@@ -93,3 +93,10 @@ Uses `TELEGRAM_BOT_TOKEN` and `TELEGRAM_HOME_CHANNEL` from `/opt/data/.env.token
 ```bash
 python3 /opt/data/skills/productivity/daily-weather-brief/scripts/format_brief_weather.py
 ```
+
+## Cron-run execution notes
+
+- For scheduled runs, the final response is the Telegram-delivered message. Do **not** call `send_message` or otherwise try to deliver manually; just return the weather brief as the final response.
+- If the script exits `0` but prints per-location errors such as `HTTP Error 502: Bad Gateway` or `HTTP Error 429: Too Many Requests`, rerun once to rule out a transient Open-Meteo failure.
+- If errors persist, preserve the script's stdout as the final brief rather than synthesizing a replacement from other weather sources, unless the user explicitly asks for a fallback. This keeps the cron output faithful to the configured formatter.
+- Current failure mode observed: Open-Meteo may return `502` for the legacy daily parameter names (`weathercode`, `windspeed_10m_max`) and `429`/connection resets for the newer names (`weather_code`, `wind_speed_10m_max`) under rate limiting. Treat this as an upstream/API compatibility issue to debug separately, not as a reason to silently change the delivered brief.
