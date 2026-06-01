@@ -69,6 +69,8 @@ def _load_openai_cls() -> type:
     if _OPENAI_CLS_CACHE is None:
         from openai import OpenAI as _cls
         _OPENAI_CLS_CACHE = _cls
+        from agent._sdk_patches import install_response_output_none_guard
+        install_response_output_none_guard()
     return _OPENAI_CLS_CACHE
 
 
