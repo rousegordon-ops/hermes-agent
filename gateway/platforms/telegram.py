@@ -287,14 +287,53 @@ class TelegramAdapter(BasePlatformAdapter):
         # Approval button state: message_id → session_key
         self._approval_state: Dict[int, str] = {}
 
-    @staticmethod
-    def _is_callback_user_authorized(user_id: str) -> bool:
+    def _is_callback_user_authorized(
+        self,
+        user_id: str,
+        *,
+        chat_id: Optional[str] = None,
+        chat_type: Optional[str] = None,
+        thread_id: Optional[str] = None,
+        user_name: Optional[str] = None,
+    ) -> bool:
         """Return whether a Telegram inline-button caller may perform gated actions."""
+        normalized_user_id = str(user_id or "").strip()
+        if not normalized_user_id:
+            return False
+
+        runner = getattr(getattr(self, "_message_handler", None), "__self__", None)
+        auth_fn = getattr(runner, "_is_user_authorized", None)
+        if callable(auth_fn):
+            try:
+                from gateway.session import SessionSource
+
+                normalized_chat_type = str(chat_type or "dm").strip().lower() or "dm"
+                if normalized_chat_type == "private":
+                    normalized_chat_type = "dm"
+                elif normalized_chat_type == "supergroup":
+                    normalized_chat_type = "forum" if thread_id is not None else "group"
+
+                source = SessionSource(
+                    platform=Platform.TELEGRAM,
+                    chat_id=str(chat_id or normalized_user_id),
+                    chat_type=normalized_chat_type,
+                    user_id=normalized_user_id,
+                    user_name=str(user_name).strip() if user_name else None,
+                    thread_id=str(thread_id) if thread_id is not None else None,
+                )
+                return bool(auth_fn(source))
+            except Exception:
+                logger.debug(
+                    "[Telegram] Falling back to env-only callback auth for user %s",
+                    normalized_user_id,
+                    exc_info=True,
+                )
+
         allowed_csv = os.getenv("TELEGRAM_ALLOWED_USERS", "").strip()
         if not allowed_csv:
             return True
         allowed_ids = {uid.strip() for uid in allowed_csv.split(",") if uid.strip()}
-        return "*" in allowed_ids or user_id in allowed_ids
+        return "*" in allowed_ids or normalized_user_id in allowed_ids
 
     @classmethod
     def _metadata_thread_id(cls, metadata: Optional[Dict[str, Any]]) -> Optional[str]:
@@ -718,6 +757,20 @@ class TelegramAdapter(BasePlatformAdapter):
                     )
                     # Persist thread_id to config so we don't recreate on next restart
                     self._persist_dm_topic_thread_id(int(chat_id), topic_name, thread_id)
+
+                    # Send a seed message so the topic is visible in Telegram's client.
+                    # Empty topics are hidden by the client UI until they contain a message.
+                    try:
+                        await self._bot.send_message(
+                            chat_id=int(chat_id),
+                            message_thread_id=thread_id,
+                            text=f"\U0001f4cc {topic_name}",
+                        )
+                    except Exception as seed_err:
+                        logger.debug(
+                            "[%s] Could not send seed message to topic '%s': %s",
+                            self.name, topic_name, seed_err,
+                        )
 
     async def connect(self) -> bool:
         """Connect to Telegram via polling or webhook.
@@ -1187,7 +1240,17 @@ class TelegramAdapter(BasePlatformAdapter):
                                 continue
                         raise
                 message_ids.append(str(msg.message_id))
-            
+
+            # Re-trigger typing indicator after sending a message.
+            # Telegram clears the typing state when a new message is delivered,
+            # so without this the "...typing" bubble disappears mid-response
+            # (especially noticeable when the agent sends intermediate progress
+            # messages like "Checking:" before running tools).
+            try:
+                await self.send_typing(chat_id, metadata=metadata)
+            except Exception:
+                pass  # Typing failures are non-fatal
+
             return SendResult(
                 success=True,
                 message_id=message_ids[0] if message_ids else None,
@@ -1715,6 +1778,12 @@ class TelegramAdapter(BasePlatformAdapter):
         if not query or not query.data:
             return
         data = query.data
+        query_message = getattr(query, "message", None)
+        query_chat_id = getattr(query_message, "chat_id", None)
+        query_chat = getattr(query_message, "chat", None)
+        query_chat_type = getattr(query_chat, "type", None)
+        query_thread_id = getattr(query_message, "message_thread_id", None)
+        query_user_name = getattr(query.from_user, "first_name", None)
 
         # --- Model picker callbacks ---
         if data.startswith(("mp:", "mm:", "mb", "mx", "mg:")):
@@ -1736,7 +1805,13 @@ class TelegramAdapter(BasePlatformAdapter):
 
                 # Only authorized users may click approval buttons.
                 caller_id = str(getattr(query.from_user, "id", ""))
-                if not self._is_callback_user_authorized(caller_id):
+                if not self._is_callback_user_authorized(
+                    caller_id,
+                    chat_id=query_chat_id,
+                    chat_type=str(query_chat_type) if query_chat_type is not None else None,
+                    thread_id=str(query_thread_id) if query_thread_id is not None else None,
+                    user_name=query_user_name,
+                ):
                     await query.answer(text="⛔ You are not authorized to approve commands.")
                     return
 
@@ -1784,7 +1859,13 @@ class TelegramAdapter(BasePlatformAdapter):
             return
         answer = data.split(":", 1)[1]  # "y" or "n"
         caller_id = str(getattr(query.from_user, "id", ""))
-        if not self._is_callback_user_authorized(caller_id):
+        if not self._is_callback_user_authorized(
+            caller_id,
+            chat_id=query_chat_id,
+            chat_type=str(query_chat_type) if query_chat_type is not None else None,
+            thread_id=str(query_thread_id) if query_thread_id is not None else None,
+            user_name=query_user_name,
+        ):
             await query.answer(text="⛔ You are not authorized to answer update prompts.")
             return
         await query.answer(text=f"Sent '{answer}' to the update process.")
@@ -1902,13 +1983,54 @@ class TelegramAdapter(BasePlatformAdapter):
                 )
             return SendResult(success=True, message_id=str(msg.message_id))
         except Exception as e:
-            logger.error(
-                "[%s] Failed to send Telegram local image, falling back to base adapter: %s",
-                self.name,
-                e,
-                exc_info=True,
+            error_str = str(e)
+            # Dimension-related errors are the expected case for valid image
+            # files that Telegram just refuses as photos (screenshots, extreme
+            # aspect ratios). Log at INFO because the document fallback is
+            # the correct path. Any other send_photo failure also falls back
+            # to document (rate limits, corrupt file markers, format edge
+            # cases), but at WARNING because it's unexpected and worth
+            # surfacing in logs.
+            is_dim_error = (
+                "Photo_invalid_dimensions" in error_str
+                or "PHOTO_INVALID_DIMENSIONS" in error_str
             )
-            return await super().send_image_file(chat_id, image_path, caption, reply_to)
+            if is_dim_error:
+                logger.info(
+                    "[%s] Image dimensions exceed Telegram photo limits, "
+                    "sending as document: %s",
+                    self.name,
+                    image_path,
+                )
+            else:
+                logger.warning(
+                    "[%s] Failed to send Telegram local image as photo, "
+                    "trying document fallback: %s",
+                    self.name,
+                    e,
+                    exc_info=True,
+                )
+            # Fallback to sending as document (file) — no dimension limit,
+            # only 50MB size limit. If even that fails, fall back to the
+            # base adapter's text-only "Image: /path" rendering.
+            try:
+                return await self.send_document(
+                    chat_id=chat_id,
+                    file_path=image_path,
+                    caption=caption,
+                    file_name=os.path.basename(image_path),
+                    reply_to=reply_to,
+                    metadata=metadata,
+                )
+            except Exception as doc_err:
+                logger.error(
+                    "[%s] Failed to send Telegram local image as document, "
+                    "falling back to base adapter: %s",
+                    self.name,
+                    doc_err,
+                    exc_info=True,
+                )
+                return await super().send_image_file(chat_id, image_path, caption, reply_to)
 
     async def send_document(
         self,

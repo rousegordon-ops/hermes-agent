@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gordon Rouse — Director of Engineering</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --green: #3fb950;
+    --yellow: #d29922;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 80px 24px;
+    background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+    position: relative;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 300px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 3px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 24px;
+    letter-spacing: -1px;
+  }
+
+  .hero h1 {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+
+  .hero .role {
+    font-size: 20px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .hero .company {
+    font-size: 16px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .hero .tenure {
+    font-size: 14px;
+    color: var(--yellow);
+    margin-bottom: 16px;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+  }
+
+  .status-badge::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent-dim);
+    color: white;
+  }
+  .btn-primary:hover { background: #388bfd; text-decoration: none; }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--text-muted); text-decoration: none; }
+
+  /* SECTION */
+  .section {
+    padding: 80px 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .section h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 32px;
+    letter-spacing: -0.3px;
+  }
+
+  /* TIMELINE */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: var(--border);
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 24px;
+    padding: 0 0 32px 0;
+    position: relative;
+  }
+
+  .timeline-item:last-child { padding-bottom: 0; }
+
+  .timeline-dot {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .timeline-dot.current {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(88,166,255,0.3);
+  }
+
+  .timeline-content { flex: 1; padding-top: 4px; }
+
+  .timeline-content .role {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .timeline-content .company {
+    font-size: 14px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .timeline-content .dates {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .timeline-content .desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* EDUCATION */
+  .edu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .edu-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 32px; }
+  }
+
+  .edu-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .edu-card .school { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .edu-card .degree { font-size: 14px; color: var(--accent); margin-bottom: 4px; }
+  .edu-card .years { font-size: 13px; color: var(--text-muted); }
+
+  /* OPEN TO */
+  .open-to-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .open-to-grid { grid-template-columns: 1fr; }
+  }
+
+  .option-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .option-card .icon { font-size: 28px; margin-bottom: 12px; }
+  .option-card .title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .option-card .desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+  /* EMPLOYERS */
+  .employer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 700px) {
+    .employer-grid { grid-template-columns: 1fr; }
+  }
+
+  .employer-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.15s;
+  }
+
+  .employer-card:hover { border-color: var(--text-muted); }
+  .employer-card .name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .employer-card .location { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+  .employer-card .commute {
+    font-size: 12px;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .employer-card .commute::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .excludes-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 24px;
+  }
+
+  .excludes-box h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .excludes-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .tag {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  footer .links {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  footer .links a {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  footer .links a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="avatar">GR</div>
+  <h1>Gordon Rouse</h1>
+  <p class="role">Director of Engineering</p>
+  <p class="company">KLA Corporation</p>
+  <p class="tenure">31 yrs 5 mos at KLA</p>
+  <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">gordon.rouse@gmail.com</p>
+  <div class="status-badge">Actively exploring — relocating to Ventura, CA</div>
+  <div class="hero-actions">
+    <a href="https://www.linkedin.com/in/gordonrouse" target="_blank" class="btn btn-primary">🔗 LinkedIn</a>
+  </div>
+</section>
+
+<!-- EXPERIENCE -->
+<section class="section">
+  <div class="container">
+    <p class="section-label">Work History</p>
+    <h2>Career timeline</h2>
+    <div class="timeline">
+
+      <div class="timeline-item">
+        <div class="timeline-dot current">📍</div>
+        <div class="timeline-content">
+          <div class="role">Director of Engineering</div>
+          <div class="company">KLA Corporation · Milpitas, CA</div>
+          <div class="dates">Feb 2026 – Present · 4 mos</div>
+          <div class="desc">Leading a large engineering organization building inspection and metrology tools for semiconductor fabs. Systems architecture, firmware, imaging pipelines, and cross-functional program leadership.</div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot">⚙️</div>
+        <div class="timeline-content">
+          <div class="role">Engineering Program Manager</div>
+          <div class="company">KLA Corporation</div>
+          <div class="dates">Jan 2011 – Feb 2026 · 15 yrs 5 mos</div>
+          <div class="desc">Program management for complex capital equipment product development. Drove cross-functional execution across hardware, firmware, software, and optics teams.</div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot">🛠️</div>
+        <div class="timeline-content">
+          <div class="role">Software Engineering Manager</div>
+          <div class="company">KLA Corporation</div>
+          <div class="dates">2006 – Nov 2011 · 5 yrs 11 mos</div>
+          <div class="desc">Managed software engineering teams developing inspection and metrology systems. Focused on embedded systems, real-time imaging, and factory automation interfaces.</div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot">💻</div>
+        <div class="timeline-content">
+          <div class="role">Software Engineer</div>
+          <div class="company">KLA Corporation</div>
+          <div class="dates">1998 – 2006 · 8 yrs</div>
+          <div class="desc">Developing software for semiconductor inspection equipment. Core systems programming, algorithm development, and customer-facing support.</div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot">⚡</div>
+        <div class="timeline-content">
+          <div class="role">Systems Engineer</div>
+          <div class="company">KLA Corporation</div>
+          <div class="dates">1995 – 1998 · 3 yrs</div>
+          <div class="desc">Systems integration and test engineering for wafer inspection tools.</div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot">💊</div>
+        <div class="timeline-content">
+          <div class="role">Pharmaceutical Sales Representative</div>
+          <div class="company">Syntex Labs</div>
+          <div class="dates">1993 – 1995 · 2 yrs</div>
+          <div class="desc">Pharmaceutical sales prior to the career pivot to engineering.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- EDUCATION -->
+<section class="section">
+  <div class="container">
+    <p class="section-label">Education</p>
+    <h2>Academic background</h2>
+    <div class="edu-grid">
+      <div class="edu-card">
+        <div class="school">Santa Clara University</div>
+        <div class="degree">MS, Computer Engineering</div>
+        <div class="years">1997 – 2001</div>
+      </div>
+      <div class="edu-card">
+        <div class="school">UC Santa Barbara</div>
+        <div class="degree">BS, Physics</div>
+        <div class="years">~1993–1997</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OPEN TO -->
+<section class="section">
+  <div class="container">
+    <p class="section-label">What I'm Looking For</p>
+    <h2>Open to the right opportunity</h2>
+    <div class="open-to-grid">
+      <div class="option-card">
+        <div class="icon">⚙️</div>
+        <div class="title">Staff / Principal IC</div>
+        <div class="desc">Technical leadership — architecture, cross-team influence, big-picture systems thinking.</div>
+      </div>
+      <div class="option-card">
+        <div class="icon">🛠️</div>
+        <div class="title">Systems Engineering Management</div>
+        <div class="desc">Managing senior engineers and architects. System design, technical strategy, org health.</div>
+      </div>
+      <div class="option-card">
+        <div class="icon">📊</div>
+        <div class="title">Program / Product Management</div>
+        <div class="desc">Technical program management. High-visibility, cross-functional, outcome-driven.</div>
+      </div>
+      <div class="option-card">
+        <div class="icon">🌅</div>
+        <div class="title">Retire / Consult</div>
+        <div class="desc">Part-time consulting, advisory, or board roles. Lighter involvement if the fit is right.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TARGET EMPLOYERS -->
+<section class="section">
+  <div class="container">
+    <p class="section-label">Target Employers</p>
+    <h2>&lt;30 min commute from Ventura</h2>
+    <div class="employer-grid">
+      <div class="employer-card">
+        <div class="name">Northrop Grumman</div>
+        <div class="location">Camarillo, CA</div>
+        <div class="commute">~26 min from Ventura</div>
+      </div>
+      <div class="employer-card">
+        <div class="name">Teledyne</div>
+        <div class="location">Thousand Oaks, CA</div>
+        <div class="commute">~37 min from Ventura</div>
+      </div>
+      <div class="employer-card">
+        <div class="name">Amgen</div>
+        <div class="location">Thousand Oaks, CA</div>
+        <div class="commute">~32 min from Ventura</div>
+      </div>
+    </div>
+    <div class="excludes-box">
+      <h3>Excludes</h3>
+      <div class="excludes-tags">
+        <span class="tag">Verilog / VHDL / Firmware</span>
+        <span class="tag">Active Security Clearance Required</span>
+        <span class="tag">Raytheon / Goleta area</span>
+        <span class="tag">Adtech / non-core</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<footer>
+  <div class="container">
+    <div class="links">
+      <a href="https://www.linkedin.com/in/gordonrouse" target="_blank">🔗 LinkedIn</a>
+      <span>✉️ gordon.rouse@gmail.com</span>
+    </div>
+    <p>Director of Engineering · KLA · 31 years</p>
+    <p style="margin-top: 8px; font-size: 11px; color: var(--border);">Santa Clara, CA → Ventura, CA</p>
+  </div>
+</footer>
+
+</body>
+</html>

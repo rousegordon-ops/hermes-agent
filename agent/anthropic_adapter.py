@@ -959,10 +959,12 @@ def _generate_pkce() -> tuple:
 
 def run_hermes_oauth_login_pure() -> Optional[Dict[str, Any]]:
     """Run Hermes-native OAuth PKCE flow and return credential state."""
+    import secrets
     import time
     import webbrowser
 
     verifier, challenge = _generate_pkce()
+    oauth_state = secrets.token_urlsafe(32)
 
     params = {
         "code": "true",
@@ -972,7 +974,7 @@ def run_hermes_oauth_login_pure() -> Optional[Dict[str, Any]]:
         "scope": _OAUTH_SCOPES,
         "code_challenge": challenge,
         "code_challenge_method": "S256",
-        "state": verifier,
+        "state": oauth_state,
     }
     from urllib.parse import urlencode
 
@@ -1009,7 +1011,12 @@ def run_hermes_oauth_login_pure() -> Optional[Dict[str, Any]]:
 
     splits = auth_code.split("#")
     code = splits[0]
-    state = splits[1] if len(splits) > 1 else ""
+    received_state = splits[1] if len(splits) > 1 else ""
+
+    # Validate state to prevent CSRF (RFC 6749 §10.12)
+    if received_state != oauth_state:
+        logger.warning("OAuth state mismatch — possible CSRF, aborting")
+        return None
 
     try:
         import urllib.request
@@ -1018,7 +1025,7 @@ def run_hermes_oauth_login_pure() -> Optional[Dict[str, Any]]:
             "grant_type": "authorization_code",
             "client_id": _OAUTH_CLIENT_ID,
             "code": code,
-            "state": state,
+            "state": received_state,
             "redirect_uri": _OAUTH_REDIRECT_URI,
             "code_verifier": verifier,
         }).encode()
@@ -1112,9 +1119,12 @@ def normalize_model_name(model: str, preserve_dots: bool = False) -> str:
         # These must not be converted to hyphens.  See issue #12295.
         if _is_bedrock_model_id(model):
             return model
-        # OpenRouter uses dots for version separators (claude-opus-4.6),
-        # Anthropic uses hyphens (claude-opus-4-6). Convert dots to hyphens.
-        model = model.replace(".", "-")
+        # Only convert dots to hyphens for Anthropic/Claude models.
+        # Non-Anthropic models (gpt-5.4, gemini-2.5, etc.) use dots
+        # as part of their canonical names.  See issue #17171.
+        _lower = model.lower()
+        if _lower.startswith("claude-") or _lower.startswith("anthropic/"):
+            model = model.replace(".", "-")
     return model
 
 

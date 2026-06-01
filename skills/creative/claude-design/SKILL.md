@@ -547,13 +547,74 @@ Better:
 - test light/dark or variants if present
 - test responsive breakpoints if relevant
 
+### Browser verification with `agent-browser`
+
+When the environment has `agent-browser` installed (it's at `/opt/hermes/node_modules/.bin/agent-browser` in this container), use it to open and verify HTML artifacts in a real Chrome instance with JavaScript execution:
+
+```bash
+# Open the file in a real browser (headless by default)
+node /opt/hermes/node_modules/.bin/agent-browser open "file:///path/to/file.html"
+
+# Take a screenshot (useful for visual QA)
+node /opt/hermes/node_modules/.bin/agent-browser screenshot /path/to/screenshot.png
+
+# Get a text snapshot of what's on the page
+node /opt/hermes/node_modules/.bin/agent-browser snapshot
+
+# Check for console errors
+node /opt/hermes/node_modules/.bin/agent-browser console
+
+# Get page title and URL
+node /opt/hermes/node_modules/.bin/agent-browser get title
+```
+
+This is especially useful for verifying:
+- JavaScript-driven content renders correctly
+- CSS animations/playback work
+- No runtime console errors
+- Layout renders as intended (screenshot comparison)
+
+**Installing if missing:** `node /opt/hermes/node_modules/.bin/agent-browser install` downloads Chrome. `agent-browser install --with-deps` also installs system libs (requires root — may not work in all containers).
+
 If verification is limited by environment, say exactly what was and was not verified.
 
-Never say “done” if the file was not actually written.
+### Delivering HTML artifacts — two paths
 
-## Final Response Format
+**Path 1 (preferred when available): use `publish_html` tool**
 
-Keep final responses short.
+This environment has a `publish_html` tool that pushes HTML directly to Cloudflare Pages and returns a public URL. This is the default delivery path — use it unless there's a reason not to.
+
+```python
+# Available at: tools/publish_html.py
+# Env var needed: GITHUB_TOKEN (already set in this environment)
+# Base URL: https://hermes-pages.rouse-gordon.workers.dev
+
+from tools.publish_html import publish_html
+result = publish_html('slug-name', html_content)
+# Returns: {"success": true, "url": "https://hermes-pages.rouse-gordon.workers.dev/<hash>-slug-name.html", ...}
+```
+
+The returned URL is shareable immediately — Cloudflare Pages auto-deploys on push, typically live within 30 seconds.
+
+**Path 2 (fallback): code block copy-paste**
+
+If `publish_html` is unavailable (no GITHUB_TOKEN, Cloudflare Pages not configured, or the artifact belongs in a specific repo path), deliver as a code block. The user copies, saves as `.html`, opens locally.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+...
+```
+
+Keep code blocks tidy — validate the HTML structure before posting. Do not paste broken or truncated HTML.
+
+**When writing to a watched repo:** `/opt/data/repo` is git-tracked and auto-pushed by the source-watcher. If the artifact belongs in the repo (e.g., a landing page for a project), write directly to `/opt/data/repo/<path>` and it will be committed and pushed within ~3 minutes automatically.
+
+**For personalized content (landing pages, CVs, portfolios):** Ask the user to paste source material (LinkedIn export, resume text, copy-paste from their profile) before designing, rather than building from memory. Source material produces accurate content; memory produces approximations.
+
+---
+
+## Portable Opening Prompt Pattern
 
 Include:
 

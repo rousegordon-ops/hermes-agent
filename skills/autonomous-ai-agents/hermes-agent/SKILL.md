@@ -340,6 +340,14 @@ Edit with `hermes config edit` or `hermes config set section.key value`.
 
 Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 
+### Gordon Railway gateway fix pull-ins
+
+When pulling Telegram/gateway, cron, provider-fallback, memory, or compression fixes into Gordon's Railway fork, use the conservative workflow and pitfalls in `references/railway-gateway-fix-pullin.md`.
+
+### Gordon GBrain path layout
+
+For Gordon's Railway instance, keep Hermes native memory and GBrain concerns separated like upstream gbrain: native memory at `/opt/data/memories`, durable markdown content source at `/opt/data/gbrain-content`, source checkout at `/opt/data/repos/gbrain`, and runtime/config/DB convention under `/opt/data/.gbrain`. See `references/gordon-gbrain-path-layout.md` for migration/verification commands, dream health cleanup, upstream gbrain fast-forward workflow, `sync.repo_path` pitfalls, sparse-checkout workaround for root-owned test fixtures, and root-owned legacy path pitfalls.
+
 ### Providers
 
 20+ providers supported. Set via `hermes model` or `hermes setup`.
@@ -610,6 +618,10 @@ Check logs first:
 grep -i "failed to send\|error" ~/.hermes/logs/gateway.log | tail -20
 ```
 
+### Telegram: "Can you see the HTML pages you sent me earlier?"
+
+No. Hermes cannot see Telegram's conversation history automatically — each session starts fresh. See `references/telegram-chat-history.md` for the full architecture explanation and session_search workaround.
+
 Common gateway problems:
 - **Gateway dies on SSH logout**: Enable linger: `sudo loginctl enable-linger $USER`
 - **Gateway dies on WSL2 close**: WSL2 requires `systemd=true` in `/etc/wsl.conf` for systemd services to work. Without it, gateway falls back to `nohup` (dies when session closes).
@@ -636,7 +648,7 @@ headers={
     "User-Agent": "railway-cli/4.44.0",  # or "hermes-agent/1.0"
 }
 ```
-See `self-restart/references/cloudflare-403-urllib.md` for full details.
+See `references/gateway-request-tracking.md` for the gateway cost tracking architecture. See `references/publish-html-tool.md` for the Cloudflare Pages direct deploy tool, Node.js v22 fix, and token debugging.
 
 ---
 
@@ -656,9 +668,11 @@ See `self-restart/references/cloudflare-403-urllib.md` for full details.
 | Memory | `hermes memory status` or [Memory docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) |
 | Env variables | `hermes config env-path` or [Env vars reference](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) |
 | CLI commands | `hermes --help` or [CLI reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) |
-| Gateway logs | `~/.hermes/logs/gateway.log` |
-| Session files | `~/.hermes/sessions/` or `hermes sessions browse` |
-| Source code | `~/.hermes/hermes-agent/` |
+### Gateway logs | `~/.hermes/logs/gateway.log`
+| Session files | `~/.hermes/sessions/` or `hermes sessions browse`
+| Source code | `~/.hermes/hermes-agent/`
+
+**Model config safety**: Always confirm with Gordon before running `hermes config set model.*` — see `references/hermes-model-config-safety.md`.
 
 ---
 
@@ -762,13 +776,41 @@ Optional body.
 
 Types: `fix:`, `feat:`, `refactor:`, `docs:`, `chore:`
 
+### Gordon fork upstream sync
+
+For Gordon's deployment fork (`rousegordon-ops/hermes-agent`), avoid wholesale upstream merges unless explicitly requested. Prefer a low-risk cherry-pick pass: map fork-sensitive paths, use `git merge-tree` for conflict prediction, pick narrow bug/security fixes, preserve Railway/source-watcher behavior, run targeted tests, and revert incidental `uv.lock` churn. Detailed workflow: `github-pr-workflow` → `references/low-risk-upstream-sync.md`. Fork overlay documentation workflow: `references/fork-change-documentation.md`.
+
+**Cherry-pick conflict pitfall:** Do not batch `git cherry-pick -n` many upstream fixes into Gordon's fork without a rollback plan. If a conflict occurs, `git cherry-pick --skip` can discard or confuse partially staged work from the in-progress pick, especially after manual conflict resolution. Safer workflow: apply one commit at a time, or inspect each upstream diff and manually patch only the needed hunks; after every conflict resolution run `git status`, search for conflict markers, and verify the target hunks actually remain in the working tree before continuing. Never claim integration is complete until tests and Railway gateway delivery are verified.
+
+### Gateway Metrics & Cost Report
+
+When asked to explain or comment the differences between `rousegordon-ops/hermes-agent` and upstream Nous Hermes Agent, add/update a root `FORK_NOTES.md` plus a short `README.md` fork note. Compare against `upstream/main`, unshallow the clone if needed, and summarize intentional deployment-overlay changes rather than every commit. See `references/fork-change-documentation.md`.
+
 ### Gateway Metrics & Cost Report
 
 The daily cost report (`scripts/cost_report.py`) sends balance + spend + request metrics to Telegram. Request tracking uses a local JSONL log appended by a gateway hook — OpenRouter's analytics API requires a management key most users don't have. See `references/gateway-request-tracking.md` for the full pattern (hook location, JSONL schema, sliding-window algorithm, data sources considered).
 
-### Source Watcher Broken-Code Gate
+### Fallback Status Messages — Why They May Not Reach Telegram
+
+`_emit_status()` fires two parallel paths: `_vprint(force=True)` for CLI, and `status_callback("lifecycle", message)` for gateway. The gateway bridges this via `_status_callback_sync → adapter.send()` — but the Telegram adapter's `send()` method is designed for final response delivery, not inline status updates.
+
+**The streaming-only delivery problem**: The gateway's `GatewayStreamConsumer` handles status/lifecycle messages through commentary paths. When fallback fires mid-stream, the status message is emitted before the stream starts or between segments. The `_send_commentary()` path can deliver these as interim messages, but only when the stream consumer is active.
+
+**What this means for Gordon**: When GPT-5.5 hits a rate limit and fallback fires, you may see only generic messages. Patches at run_agent.py lines ~11995 and ~12324 add the error reason to these messages. But if Telegram still doesn't show them, the root cause is the non-streaming status delivery gap — status callbacks get lost when there's no active stream to attach them to.
+
+See `references/gateway-request-tracking.md` for the full pattern (hook location, JSONL schema, sliding-window algorithm, data sources considered).
+
+### Fallback Status Messages — Why They May Not Reach Telegram
 
 `scripts/source_watcher.py` gates every commit before push by running `ruff check --select F821 --no-fix` only on staged Python files; current Ruff still reports parser failures (`invalid-syntax`) under this command, while `E999` is no longer selectable in Ruff 0.15+. This catches undefined names (`F821`, e.g. `NameError` from an out-of-scope variable) and syntax errors without broad style rules that could create false positives. If ruff fails, the watcher skips commit+push, leaves the changes in place, appends full details plus the staged diff to `/opt/data/logs/watcher-blocked.log`, and sends a Telegram alert to `$TELEGRAM_HOME_CHANNEL`; temporarily bypass only with `HERMES_WATCHER_SKIP_LINT=1`.
+
+### Gordon's Wiki
+
+See `references/gordon-wiki-architecture.md` for Gordon's wiki layout, Cloudflare Pages direct deploy setup, and publishing workflow. Key: Cloudflare token invalid → 401 from API → get fresh token from Cloudflare Dashboard → update Railway env var.
+
+### Gordon's gbrain vs Hermes native memory paths
+
+See `references/gbrain-memory-path-separation.md` before renaming or discussing `/opt/data/memories`, `/opt/data/gbrain`, or original gbrain layout. Key: `/opt/data/memories` is Hermes native memory because `HERMES_HOME=/opt/data`; original gbrain uses `~/.gbrain/brain.pglite` for the DB and separate registered source paths.
 
 ### Key Rules
 

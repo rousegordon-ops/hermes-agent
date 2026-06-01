@@ -23,6 +23,81 @@ Contradictions have already been flagged. Synthesis reflects everything ingested
 **Division of labor:** The human curates sources and directs analysis. The agent
 summarizes, cross-references, files, and maintains consistency.
 
+## Agent Brain Wiki (separate from Gordon's wiki)
+
+My agent brain wiki lives at `/opt/data/hermes-brain/` (or `~/wiki` if that doesn't exist).
+It's markdown-based, Karpathy-style, for research synthesis and knowledge compilation.
+- `SCHEMA.md`, `index.md`, `log.md`, `raw/`, `entities/`, `concepts/`, etc.
+- Gordon does NOT use this — it's mine.
+- Gordon's wiki is separate: `/opt/data/hermes-pages/wiki/` (pure HTML, see below).
+
+**Do NOT conflate the two.** When I mention "the wiki" in a research context, I'm referring to my agent brain at `/opt/data/hermes-brain/`, not Gordon's HTML wiki.
+
+## Gordon's Wiki — Pure HTML
+
+Gordon retired the markdown pipeline. His wiki is **pure static HTML** at `/opt/data/hermes-pages/wiki/`.
+
+**Structure:**
+- `index.html` — wiki hub (auth-protected, lists all pages)
+- `login.html` — auth form
+- `entities/` — person/org pages
+- `concepts/` — topic pages
+- `hobbies/` — hobby pages
+- `projects/` — project pages
+- `raw/` — source articles
+- `schema.html`, `log.html` — meta pages
+
+**To add a page:**
+1. Write HTML directly to the appropriate subdirectory
+2. Add link in `index.html` under the correct section
+3. Deploy: `cd /opt/data/hermes-pages && git add . && git commit -m "..." && GIT_TERMINAL_PROMPT=0 git push origin main`
+4. Then run: `npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true`
+5. Live in ~30s at `https://hermes-pages-d55.pages.dev/wiki/...`
+
+**⚠️ Git push alone does NOT trigger Cloudflare Pages deployment.** The push goes to GitHub but the Pages site doesn't update from git alone — you MUST run the `wrangler pages deploy` command after every push. This was discovered empirically (2026-05-16).
+
+**Deploy verification:** `curl -L -A 'Mozilla/5.0' https://hermes-pages-d55.pages.dev/wiki/...`
+
+**Auth:** email `rouse.gordon@gmail.com`, password `GordonWiki2026!`, cookie `wiki_auth=GW2026`
+
+**Do NOT:** use `md2html.py`, regenerate from markdown, or touch `/opt/data/hermes-pages/gordons-llm-wiki/`.
+
+### Public standalone knowledge bases on Hermes Pages
+
+When Gordon asks to create a new "LLM wiki knowledge base" and also says it should appear on the Hermes Pages homepage, treat it as a **public standalone static knowledge base** unless he explicitly asks for the password-protected personal `/wiki/`. Use `/opt/data/hermes-pages/<topic-kb>/` with small interlinked HTML pages plus a homepage card in `/opt/data/hermes-pages/index.html`. This is different from updating the protected personal wiki.
+
+Recommended pattern:
+1. Research broadly first; for deep technical domains, delegate parallel research streams (fundamentals, latest research, applied/commercial context) and synthesize before writing.
+2. Build a hub page (`index.html`) plus 6–10 concise child pages, not one giant article.
+3. Make hub cards clickable drilldowns: the entire card should be an `<a>`/link to the relevant child page, not just a small "read more" text link. Cards should visually indicate clickability and preserve keyboard accessibility.
+4. Link tool and software product references inline. When mentioning a concrete tool, vendor product, open-source project, library, SaaS, CLI, framework, or platform, link the first substantive mention to the official product/docs/repo page when available; prefer official URLs over generic search results.
+5. Include a `sources.html` reading list with source titles and URLs.
+6. Keep the design high-contrast and navigable with a sticky side nav.
+7. Validate internal links locally before deploying, including that every hub card target resolves and that important tool/software references have outbound links.
+8. Deploy with the direct Cloudflare Pages workflow from `html-to-cloudflare`, then verify homepage card and representative child pages live.
+
+**How it works now for Gordon:**
+- Preferred homepage: `https://hermes-pages-d55.pages.dev/` (links to Wiki and Profession)
+- Static wiki HTML: `/opt/data/hermes-pages/wiki/`
+- Deploy mirror: `/opt/data/hermes-pages-files/wiki/`
+- Deploy command: `export PATH=/opt/data/.nvm/bin:$PATH && /opt/data/.npm-global/bin/wrangler pages deploy /opt/data/hermes-pages-files --project-name hermes-pages --branch main --commit-dirty=true`
+- Auth: email+password login required. Only `rouse.gordon@gmail.com` / `GordonWiki2026!`
+- Gordon views the rendered HTML in his browser; maintain static HTML directly unless Gordon explicitly asks for markdown regeneration.
+- Important: do **not** regenerate the wiki from `/opt/data/hermes-pages/gordons-llm-wiki/` by default; that previously overwrote richer static pages.
+
+**To update Gordon's wiki:**
+1. Edit/add static HTML in `/opt/data/hermes-pages/wiki/`
+2. Keep parent index/hub pages linked manually; root wiki index should list top-level hubs only, not every child page
+3. For deep dives, create semantic child pages under the parent hub (e.g. `/wiki/business-opportunities/acquire-local-service-business`) and link parent ↔ child from the relevant parent item/section
+4. Copy wiki into deploy mirror: `rm -rf /opt/data/hermes-pages-files/wiki && cp -a /opt/data/hermes-pages/wiki /opt/data/hermes-pages-files/wiki`
+5. Run the direct Cloudflare Pages deploy command above — project name is `hermes-pages`, not the domain suffix `hermes-pages-d55`
+6. Verify with browser-like curl: `curl -L -A 'Mozilla/5.0' -H 'Cookie: wiki_auth=GW2026' <live-url>` because Python `urllib` can get Cloudflare 403s
+7. Live in ~30 seconds at `https://hermes-pages-d55.pages.dev/wiki/`
+
+Detailed Gordon-specific notes: see `references/gordon-static-html-wiki-maintenance.md`. For reducing duplication by refactoring hub/child topology, see `references/gordon-static-html-wiki-topology-refactors.md`. For public standalone KBs linked from the Hermes Pages homepage, see `references/public-static-kb-on-hermes-pages.md`. For large internal engineering KB hierarchy strategy (LLM-derived vs programmatic graph/community detection), see `references/hierarchy-strategy-for-large-engineering-kbs.md`. For hierarchy trade-offs and the recommended hybrid model for large engineering/team KBs, see `references/hierarchy-strategy-for-large-engineering-kbs.md`.
+
+**To add the wiki to Obsidian later:** Clone `https://github.com/rousegordon-ops/hermes-pages`, point Obsidian at `gordons-llm-wiki/` subdirectory.
+
 ## When This Skill Activates
 
 Use this skill when the user:
@@ -39,7 +114,8 @@ Use this skill when the user:
 If unset, defaults to `~/wiki`.
 
 ```bash
-WIKI="${WIKI_PATH:-$HOME/wiki}"
+WIKI_PATH=/opt/data/memories
+WIKI="${WIKI_PATH:-/opt/data/memories}"
 ```
 
 The wiki is just a directory of markdown files — open it in Obsidian, VS Code, or
@@ -77,7 +153,8 @@ When the user has an existing wiki, **always orient yourself before doing anythi
 ③ **Scan recent `log.md`** — read the last 20-30 entries to understand recent activity.
 
 ```bash
-WIKI="${WIKI_PATH:-$HOME/wiki}"
+WIKI_PATH=/opt/data/memories
+WIKI="${WIKI_PATH:-/opt/data/memories}"
 # Orientation reads at session start
 read_file "$WIKI/SCHEMA.md"
 read_file "$WIKI/index.md"
@@ -251,6 +328,23 @@ a `_meta/topic-map.md` that groups pages by theme for faster navigation.
 - Structure created with SCHEMA.md, index.md, log.md
 ```
 
+## Wiki Gardener Policy — Agent-Inferred Taxonomy & Hierarchy
+
+Do not make the user define the taxonomy. Infer a reasonable structure from the content, then refactor as the wiki grows. "Human maintained" means human-curated/overseen, not manual hierarchy upkeep by the user: for substantial updates, the agent should automatically re-evaluate whether the hierarchy needs to evolve.
+
+Principles:
+- **Parent pages are maps, not dumping grounds.** Keep hub/index pages concise and navigable. If a hub starts accumulating repeated details also covered by child pages, refactor it back into a map/portfolio page and move shared analysis into an intermediate child hub.
+- **Promote repeated or central topics to pages.** If a topic appears repeatedly, becomes a decision area, or the user asks for a deep dive, create a dedicated page.
+- **Use semantic containment for hierarchy:** broad domain → hub page; major bucket → child hub; specific idea/opportunity/company/source → child page. When two child pages share the same thesis/market framing, add a middle parent for the shared material instead of duplicating it in each page.
+- **No hard max-child rule yet, but use review thresholds.** There is no deterministic max children/depth optimizer in the current prompt-driven workflow. As a soft heuristic, keep direct children around 7±2 when possible; if a parent reaches 10+ direct children, consider introducing intermediate hubs. Keep root/homepage navigation around 6–10 major hubs for scannability.
+- **Create child pages for deep dives by default.** Example: `business-opportunities` → `business-opportunities/ai-consulting-workflow-automation` → `business-opportunities/ai-consulting-workflow-automation/manufacturing-semicap-workflow-automation`.
+- **Split large sections.** If a page section exceeds ~300–500 words, includes multiple independent subtopics, duplicates another page, or would be painful to skim in 30 seconds, split it into child pages.
+- **Preserve navigation.** Add links from parent to child, child back to parent, and related links between sibling/adjacent pages.
+- **Do not promote child pages into the top-level wiki index as peers.** Deep-dive child pages should be linked from the relevant parent hub section/item unless they are major standalone hubs themselves.
+- **Prefer small composable pages over long monoliths.** The wiki should become more navigable over time, not just longer.
+- **Refactor without asking when the structure is obvious.** If uncertain, make a reasonable structure and note it can be adjusted later.
+- **Keep raw/source facts distinct from synthesized conclusions.** Sources are evidence; wiki pages are curated synthesis.
+
 ## Core Operations
 
 ### 1. Ingest
@@ -289,8 +383,12 @@ When the user provides a source (URL, file, paste), integrate it into the wiki:
      claim is well-supported across multiple sources.
 
 ⑤ **Update navigation:**
-   - Add new pages to `index.md` under the correct section, alphabetically
-   - Update the "Total pages" count and "Last updated" date in index header
+   - First classify the page as **root-level hub**, **child/deep-dive**, or **leaf/source note**.
+   - Add only root-level hubs to the root `index.md`.
+   - For child/deep-dive pages, do **not** add them as peers in the root index; link them from the relevant parent hub section/item and add a breadcrumb/back-link from child to parent.
+   - In static HTML hubs, make cards clickable drilldowns: wrap the whole card in an anchor (`<a class="card" href="child-page.html">…</a>` or equivalent), not just the title or CTA. Preserve visible focus states and meaningful accessible labels.
+   - Link references to concrete tools and software products on first substantive mention, using official product/docs/repo URLs when available.
+   - Update the "Total pages" count and "Last updated" date in index header when using markdown index files.
    - Append to `log.md`: `## [YYYY-MM-DD] ingest | Source Title`
    - List every file created or updated in the log entry
 
@@ -473,22 +571,82 @@ sudo loginctl enable-linger $USER
 This lets the agent write to `~/wiki` on a server while you browse the same
 vault in Obsidian on your laptop/phone — changes appear within seconds.
 
+- **Wiki index vs nav:** The index at `index.md` is a hub page (sectioned link list). The nav bar is a separate top strip generated by `md2html.py`. They serve different purposes — index for browsing, nav for in-page navigation. Keep them consistent but don't conflate them.
+
+### Adding new wiki pages
+
+When you add a new page to `/opt/data/wiki/`:
+1. Create the markdown file
+2. Add it to `index.md` under the right section as `[[path/to/page]]`
+3. **Add entry to `WIKI_PATH_MAP` in `md2html.py`** — this map drives both the wiki hub links AND the in-page nav. Missing entries cause garbled display names.
+4. Run `python3 /opt/data/scripts/md2html.py`
+5. Git commit and push
+
+### Adding images to wiki pages
+
+Use `[[assets/filename.jpg]]` to embed an inline image in any wiki page. This syntax renders
+as `<img src="/wiki/assets/filename.jpg">` in the HTML, not as a link. The `md2html.py` script
+handles this automatically.
+
+**To add a photo:**
+1. Create `wiki/assets/` subdirectory if it doesn't exist
+2. Copy image file: `cp /path/to/image.jpg wiki/assets/`
+3. Reference in markdown: `[[assets/image.jpg]]`
+4. Commit image to the hermes-pages repo, push, let Cloudflare Pages pick it up
+
+### Publishing flow (Gordons-specific)
+
+The end-to-end pipeline uses two repos:
+```
+/opt/data/hermes-pages/           ← GitHub: rousegordon-ops/hermes-pages (source + images)
+/opt/data/hermes-pages-repo/       ← working clone, md2html.py writes HTML output here
+```
+
+**Full publish sequence:**
+1. Copy image files to `hermes-pages/wiki/assets/` (create dir if missing)
+2. Edit markdown source in `hermes-pages/gordons-llm-wiki/`
+3. Run `python3 hermes-pages/scripts/md2html.py hermes-pages/gordons-llm-wiki`
+   (outputs to `/opt/data/hermes-pages-repo/wiki/`)
+4. Copy generated HTML back: `cp -r hermes-pages-repo/wiki/* hermes-pages/wiki/`
+5. `cd hermes-pages && git add -A && git commit -m "message" && git push`
+6. Cloudflare Pages auto-deploys in ~30s → live at `https://hermes-pages.rouse-gordon.workers.dev/wiki/`
+
+**`WIKI_PATH_MAP` is the single source of truth** for: URL path, display label, and nav order.
+```python
+WIKI_PATH_MAP = {
+    'gordon-rouse':      ('entities/gordon-rouse',      'Gordon Rouse'),
+    'hobbies/fitness':   ('hobbies/fitness',           'Fitness'),
+    ...
+}
+```
+If a `[[wikilink]]` in `index.md` doesn't have a map entry, `wiki_link()` falls back to auto-labeling: `name.split('/')[-1].replace('-',' ').title()` — which produces ugly results like "Ventura Renovation" from "projects/ventura-renovation" becomes "Projects / Ventura Renovation". Always add the map entry.
+
 ## Pitfalls
 
+- **Static HTML is the source of truth for Gordon's wiki.** Do not use the older markdown-generation publishing flow unless Gordon explicitly asks for it. See `references/gordon-static-html-wiki-maintenance.md` for the current direct-edit/deploy workflow.
+- **Cloudflare Pages project vs domain:** deploy with `--project-name hermes-pages`. `hermes-pages-d55` is the public Pages domain suffix; using it as the project name causes Wrangler `Project not found`.
+- **Cloudflare verification:** if Python `urllib` gets a 403 while verifying a live page, retry with `curl -L -A 'Mozilla/5.0' -H 'Cookie: wiki_auth=GW2026' ...` before assuming deploy failed.
 - **Never modify files in `raw/`** — sources are immutable. Corrections go in wiki pages.
 - **Always orient first** — read SCHEMA + index + recent log before any operation in a new session.
   Skipping this causes duplicates and missed cross-references.
+- **`WIKI_PATH_MAP` must be updated when adding pages** — missing entries cause garbled link labels
+  in the index. The fallback auto-label produces names like "Projects / Ventura Renovation" instead of
+  "Ventura Renovation". See [[wiki-link-display-name-bug]] for the original incident.
 - **Always update index.md and log.md** — skipping this makes the wiki degrade. These are the
   navigational backbone.
 - **Don't create pages for passing mentions** — follow the Page Thresholds in SCHEMA.md. A name
   appearing once in a footnote doesn't warrant an entity page.
 - **Don't create pages without cross-references** — isolated pages are invisible. Every page must
   link to at least 2 other pages.
+- **Don't list child deep dives as top-level peers** — if a page lives under a parent hub path (e.g. `/wiki/business-opportunities/acquire-local-service-business`), link it from the relevant parent hub item/section, not as a peer in the root wiki index unless it has become a major standalone hub.
+- **Don't let scheduled jobs undo hierarchy refactors** — when changing page topology, update any cron/webhook prompts that write to those pages so future automated updates target the correct hub or child page and do not reintroduce duplicated content.
+- **Preserve old URLs when moving child pages** — use lightweight static HTML redirects for old child-page URLs so existing links/bookmarks keep working, while canonical links point to the new semantic hierarchy.
 - **Frontmatter is required** — it enables search, filtering, and staleness detection.
 - **Tags must come from the taxonomy** — freeform tags decay into noise. Add new tags to SCHEMA.md
   first, then use them.
 - **Keep pages scannable** — a wiki page should be readable in 30 seconds. Split pages over
   200 lines. Move detailed analysis to dedicated deep-dive pages.
+- **Avoid low-contrast formatting** — Gordon finds dim gray metadata/text unreadable. Use high-contrast text for all substantive content, including meta/trend/source notes; do not hide important claims in muted styles.
 - **Ask before mass-updating** — if an ingest would touch 10+ existing pages, confirm
   the scope with the user first.
 - **Rotate the log** — when log.md exceeds 500 entries, rename it `log-YYYY.md` and start fresh.

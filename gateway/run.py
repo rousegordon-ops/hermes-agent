@@ -4699,8 +4699,11 @@ class GatewayRunner:
                 )
                 if recent_block:
                     context_prompt = (context_prompt + "\n\n" + recent_block) if context_prompt else recent_block
+                    logger.info("[recent_exchanges] injected %d chars (n=%d)", len(recent_block), _n_recent)
+                else:
+                    logger.info("[recent_exchanges] no prior exchanges available (n=%d)", _n_recent)
             except Exception as e:
-                logger.debug("recent_exchanges injection failed (non-fatal): %s", e)
+                logger.info("[recent_exchanges] injection failed (non-fatal): %s", e, exc_info=True)
 
         # Auto-load skill(s) for topic/channel bindings (Telegram DM Topics,
         # Discord channel_skill_bindings).  Supports a single name or ordered list.
@@ -8429,7 +8432,11 @@ class GatewayRunner:
         update_cmd = (
             f"PYTHONUNBUFFERED=1 {hermes_cmd_str} update --gateway"
             f" > {shlex.quote(str(output_path))} 2>&1; "
-            f"status=$?; printf '%s' \"$status\" > {shlex.quote(str(exit_code_path))}"
+            # Avoid `status=$?`: `status` is a read-only special parameter
+            # in zsh, and this command string is copied/reused in macOS/zsh
+            # operator wrappers. Keep the template zsh-safe even though this
+            # specific subprocess currently runs under bash.
+            f"rc=$?; printf '%s' \"$rc\" > {shlex.quote(str(exit_code_path))}"
         )
         try:
             setsid_bin = shutil.which("setsid")

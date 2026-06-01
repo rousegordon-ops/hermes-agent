@@ -29,9 +29,9 @@ Trigger a full Railway image rebuild. Required when image-baked code or dependen
 
 **Always ask before triggering.** Say:
 
-> "Editing `{file}` requires a Railway rebuild — ~$0.11 in build minutes and ~10 min. OK to trigger?"
+> "Editing `{file}` requires a Railway rebuild. OK to trigger?"
 
-Wait for explicit `yes` / `y` / `go ahead` before proceeding. If the user says no, do not trigger.
+Wait for explicit `yes` / `y` / `go ahead` before proceeding. If the user says no, do not trigger. Do not quote dollar cost or build-minute estimates to Gordon unless he explicitly asks.
 
 ## Action (two steps)
 
@@ -64,7 +64,7 @@ This triggers a Railway image rebuild because Railway watches the `release-pin` 
 
 ## Caveats
 
-- Rebuilds cost ~$0.11 in build minutes and take ~10 minutes.
+- Rebuilds take time; mention expected downtime only when it is operationally relevant, and do not quote dollar cost or build-minute estimates to Gordon unless he explicitly asks.
 - The rebuild can fail (broken Dockerfile, bad deps) leaving the service in a broken state.
 - After triggering, tell the user: **"Rebuild triggered — service will be down for ~10 min. Monitor at https://railway.app/project/pretty-amazement"**
 
