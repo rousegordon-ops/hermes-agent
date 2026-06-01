@@ -21,6 +21,17 @@ Fallbacks are silent — no user-visible message, just keeps answering. Switch h
 
 `auxiliary.compression.{provider,model}` is pinned to `gemini` / `gemini-3-flash` (using `GEMINI_API_KEY`). Compaction uses Gemini's large context window, so summarization is robust regardless of which main model is active.
 
+> ⚠️ **Known broken since 2026-05-10** — The auxiliary client hardcodes `_CODEX_AUX_MODEL = "gpt-5.2-codex"` for vision analysis and session summarization. `gpt-5.2-codex` is **not supported** with ChatGPT subscription (OAuth) accounts — it requires an OpenAI API paid account. This causes:
+> - `vision_analyze` to fail with `BadRequestError: 'gpt-5.2-codex' model is not supported when using Codex with a ChatGPT account`
+> - Session summarization to fail with the same error, repeatedly
+>
+> The main GPT-5.5 model works fine. Only auxiliary Codex-backed tasks fail silently (session continues, but summarization is degraded). Fixing this requires updating the constant in `/opt/hermes/agent/auxiliary_client.py` at `_CODEX_AUX_MODEL = "gpt-5.2-codex"` — change to `gpt-5.5`. Don't describe compression as robust while this failure is live.
+>
+> Grep for these errors:
+> ```
+> grep "gpt-5.2-codex.*not supported" /opt/data/logs/agent.log
+> ```
+
 Don't invoke this skill for routine work. The default + auto-fallback handles it.
 
 ## Strict model verification — prevents silent OpenAI downgrades
