@@ -156,6 +156,16 @@ After updating either index, push from `/opt/data/hermes-pages`, deploy if neede
 
 Cloudflare Pages auto-deploys on push — typically live within 30 seconds.
 
+### Personal utility list pages
+
+Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Example: `store vanity <URL>` means add the product to the Bathroom Vanities page at `/opt/data/hermes-pages/bathroom-vanities.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanities`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. For each new URL:
+1. Fetch/inspect the product page for title, price/specs, and candidate images (Open Graph/product image first; otherwise choose a clear product photo).
+2. Download the chosen image locally into `assets/` with a stable descriptive filename; do not hotlink fragile vendor CDN URLs unless downloading is blocked.
+3. Add a card/object to the existing list page without turning it into a wiki-auth page.
+4. Commit only the relevant page/assets, deploy to the `hermes-pages` project, and verify the canonical URL includes the new item and image.
+
+Pitfall: Do **not** protect root-level utility pages like `/bathroom-vanities` with the wiki login snippet. The wiki login currently redirects already-authenticated users to `/wiki/`, and its auth cookie path is `/wiki/`; a root page using `wiki_auth` will appear broken or bounce users back to the wiki/homepage. Keep root utility pages public unless Gordon explicitly asks for a proper root-scoped auth flow.
+
 ## Design preferences (from Gordon's feedback)
 
 - **High contrast:** Gordon dislikes low-contrast formatting. Use readable high-contrast text; do not put substantive content in dim gray.
