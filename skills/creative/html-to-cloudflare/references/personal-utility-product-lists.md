@@ -8,7 +8,7 @@ Treat these as equivalent:
 - `store vanity <URL>`
 - `add vanity <URL>`
 
-Add the product to `/opt/data/hermes-pages/bathroom-vanities.html` and deploy to `https://hermes-pages-d55.pages.dev/bathroom-vanities`.
+Prefer `add vanity <URL>` in user-facing page instructions. Add the product to `/opt/data/hermes-pages/bathroom-vanities.html` and deploy to `https://hermes-pages-d55.pages.dev/bathroom-vanities`.
 
 ## Required output per item
 
@@ -34,6 +34,10 @@ Examples from session:
 ## Multiple URLs in one command
 
 If Gordon says `add vanity <URL> <URL>` (or more URLs), do **not** spawn parallel agents against `/opt/data/hermes-pages/bathroom-vanities.html`. Fetch metadata/images for each URL serially, then patch the JS data array once, commit once, deploy once, and verify every new item/image on the canonical page.
+
+## Page UI/legibility
+
+Gordon reported that on phone the association between product pictures and descriptions was not clear. Maintain strong card separation on mobile and desktop: high-contrast borders around each product card, generous vertical spacing between cards, and a clear border between the image and the description when stacked. Avoid subtle low-contrast separators for substantive product grouping.
 
 ## Image verification
 
