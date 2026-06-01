@@ -164,17 +164,22 @@ After updating either index, push from `/opt/data/hermes-pages`, deploy if neede
 Cloudflare Pages auto-deploys on push — typically live within 30 seconds.
 
 ### Personal utility list pages
+### Personal utility list pages
 
-Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Example: `store vanity <URL>` or `add vanity <URL>` means add the product to the Bathroom Vanities page at `/opt/data/hermes-pages/bathroom-vanities.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanities`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. See `references/bathroom-vanities.md` for the current page-specific workflow, known quirks, and verification checklist. For each new URL:
+Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Example: `store vanity <URL>` or `add vanity <URL>` means add the product to the Bathroom Vanities page at `/opt/data/hermes-pages/bathroom-vanities.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanities`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. For each new URL:
 1. Fetch/inspect the product page for title, price/specs, and candidate images (Open Graph/product image first; otherwise choose a clear product photo).
-2. If the product site blocks direct fetches (e.g. Home Depot may return HTTP 403), use web search/extract on the product ID/model and reputable mirrors/resellers to recover metadata and image candidates, but keep the saved card's `url` pointing to Gordon's original product URL.
+2. If direct fetch is blocked (common with Home Depot/Walmart), use `web_search`/`web_extract` on the product title, model number, and item ID to find reseller mirrors, review pages, or indexed snippets for specs/images. Keep the original user URL as the product link unless Gordon gave a replacement link.
 3. Download the chosen image locally into `assets/` with a stable descriptive filename; do not hotlink fragile vendor CDN URLs unless downloading is blocked. If an image tool is available, visually verify that the saved image is actually a clear product photo.
-4. Add a card/object to the existing list page without turning it into a wiki-auth page.
-5. Commit only the relevant page/assets, deploy to the `hermes-pages` project, and verify the canonical URL includes the new item and image; if auto-deploy lags, deploy an isolated clone of the committed state so unrelated dirty files are not published.
+4. If visual verification says the first image is poor (cropped, mostly blank, not centered, wrong product), try another candidate image such as `og:image`, Shopify JSON-LD variant image, or a product mirror before adding it.
+5. Add a card/object to the existing list page without turning it into a wiki-auth page. Keep existing product cards intact; patch only the JS data array/object.
+6. Commit only the relevant page/assets, deploy to the `hermes-pages` project, and verify the canonical URL includes the new item and image.
+
+Session notes for this utility workflow are in `references/personal-utility-product-lists.md`.
 
 Pitfalls:
 - Do **not** protect root-level utility pages like `/bathroom-vanities` with the wiki login snippet. The wiki login currently redirects already-authenticated users to `/wiki/`, and its auth cookie path is `/wiki/`; a root page using `wiki_auth` will appear broken or bounce users back to the wiki/homepage. Keep root utility pages public unless Gordon explicitly asks for a proper root-scoped auth flow.
 - If Gordon says a published link “doesn't work,” do not stop at “HTTP 200” verification. Check redirect/login snippets, index/hub links, and whether the user-visible click path lands on the intended page. Fix the page/link chain before replying.
+- Cloudflare auto-deploy has repeatedly lagged for `/bathroom-vanities`; after push, verify the live page. If stale after retries, deploy an isolated clone of the committed state rather than the dirty worktree.
 
 ## Design preferences (from Gordon's feedback)
 
