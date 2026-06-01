@@ -164,7 +164,6 @@ After updating either index, push from `/opt/data/hermes-pages`, deploy if neede
 Cloudflare Pages auto-deploys on push — typically live within 30 seconds.
 
 ### Personal utility list pages
-### Personal utility list pages
 
 Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Example: `store vanity <URL>` or `add vanity <URL>` means add the product to the Bathroom Vanities page at `/opt/data/hermes-pages/bathroom-vanities.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanities`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. For each new URL:
 1. Fetch/inspect the product page for title, price/specs, and candidate images (Open Graph/product image first; otherwise choose a clear product photo).
