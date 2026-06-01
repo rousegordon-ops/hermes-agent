@@ -66,9 +66,21 @@ Add objects to `window.__GIMBALS` with fields: `name`, `url`, `img`, `price`, `d
 
 If Gordon says `add light <URL> <URL>` or `add gimbal <URL> <URL>` (or more URLs), do **not** spawn parallel agents against the shared HTML file. Fetch metadata/images for each URL serially, then patch the appropriate JS data array once, commit once, deploy once, and verify every new item/image on the canonical page.
 
+## Recessed gimbal provider notes
+
+ELCO product pages (`elcolighting.com`) extract text and image URLs well via `web_extract`, but direct image download from the official CDN may return `403` even with browser-like headers. Use reseller mirrors when needed:
+- BuyRite product handles expose Shopify JSON at `/products/<handle>.js` with title, price, and image URLs.
+- Example ELCO images/prices recovered from BuyRite/Shopify endpoints:
+  - `EL2620W` slot aperture trim: ~$25.13, image `EL2620W.jpg`.
+  - `EL2622W/B` wall-wash reflector: ~$23.73–$53.40, image `EL2622B.jpg`/`EL2622W` mirrors.
+  - `EL2688W` pull-down trim: ~$27.93–$33.15, image `EL2688W.jpg`.
+  - `EL2695W` scoop/baffle wall wash: ~$19.99–$22.65, image `EL2695W.jpg`.
+- ELCO 3" Alpine trims are often *trim + housing + lamp* systems, not complete integrated LED fixtures. For artwork, state explicitly that CRI/CCT/beam spread depend on the selected MR16/GU10/PSA37 lamp. This is not a downside if Gordon wants beam-spread control by swapping bulbs.
+- Useful fields from ELCO/resellers: outside diameter typically `4 5/16"`; EL2622 wall-wash reflector has `45° adjustability, 359° rotation`; EL2688 pull-down has `30° adjustability, 358° rotation`; EL2620 slot aperture has `45° adjustability`.
+
 ## Page UI/legibility
 
-Gordon reported that on phone the association between product pictures and descriptions was not clear. Maintain strong card separation on mobile and desktop: high-contrast borders around each product card, generous vertical spacing between cards, and a clear border between the image and the description when stacked. Avoid subtle low-contrast separators for substantive product grouping.
+Gordon reported that on phone the association between product pictures and descriptions was not clear. Maintain strong card separation on mobile and desktop: high-contrast borders around each product card, generous vertical gaps between cards, and a clear border between the image and the description when stacked. Avoid subtle low-contrast separators for substantive product grouping.
 
 ## Image verification
 

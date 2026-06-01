@@ -156,7 +156,7 @@ Pitfalls:
 
 There are two different indexes; update the one the user actually means:
 
-- Public homepage `https://hermes-pages-d55.pages.dev/` → `/opt/data/hermes-pages/index.html`. If Gordon says “I don’t see it here” and links the root URL, add a `.page-card` link here and verify the root page contains the new link.
+- Public homepage `https://hermes-pages-d55.pages.dev/` → `/opt/data/hermes-pages/index.html`. If Gordon says “I don’t see it here” and links the root URL, add a `.page-card` link here and verify the root page contains the new link. If `index.html` is root-owned or otherwise not writable by the Hermes user, do not block the standalone page/deploy; mention that the page is live but homepage indexing needs a permission fix or operator action.
 - Private wiki hub `https://hermes-pages-d55.pages.dev/wiki/` → `/opt/data/hermes-pages/wiki/index.html`. Every time a new wiki page is published, add a link in the appropriate section using the same pattern as existing links — no summary or description, just a link.
 
 After updating either index, push from `/opt/data/hermes-pages`, deploy if needed, and verify the canonical URL. Do not assume publishing a standalone HTML file makes it discoverable from the homepage.
