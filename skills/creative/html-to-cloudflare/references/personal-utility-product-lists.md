@@ -29,6 +29,11 @@ Examples from session:
 - Home Depot blocked direct Python fetch with `403`. `web_search` found a PrairieGrit mirror for model `21191` / item `316720475`, which provided a product image and specifications; keep the Home Depot URL as the actual card link.
 - LightsLux Shopify page exposed JSON-LD and many images. The selected variant had price `$109.99`, size `60CM(23.6")`, color `Coffee`, warm white `3000K`. A variant image was cropped/poor; the Open Graph image was visually verified as a better product-card image.
 - Lamps Plus blocked direct Python fetch with `403`, but `web_extract` could read the page enough for title/description and `web_search` found specs. An ET2/Lighting New York mirror (`et2lightinglights.com`) for `E23423-PC` exposed JSON-LD, full specs, and downloadable product images. Use the mirror for metadata/images but keep Gordon's original Lamps Plus URL as the card link.
+- LBC Lighting Shopify product pages can be fetched directly. For `kuz-vl62224`, JSON-LD exposed rich HTML specs and variant pricing; variant snippets in the page exposed Black/Chrome SKUs (`VL62224-BK`, `VL62224-CH`) and prices. Product images from Shopify CDN may be small but visually usable; verify before saving.
+
+## Multiple URLs in one command
+
+If Gordon says `add vanity <URL> <URL>` (or more URLs), do **not** spawn parallel agents against `/opt/data/hermes-pages/bathroom-vanities.html`. Fetch metadata/images for each URL serially, then patch the JS data array once, commit once, deploy once, and verify every new item/image on the canonical page.
 
 ## Image verification
 

@@ -161,11 +161,11 @@ There are two different indexes; update the one the user actually means:
 
 After updating either index, push from `/opt/data/hermes-pages`, deploy if needed, and verify the canonical URL. Do not assume publishing a standalone HTML file makes it discoverable from the homepage.
 
-Cloudflare Pages auto-deploys on push — typically live within 30 seconds.
-
 ### Personal utility list pages
 
-Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Example: `store vanity <URL>` or `add vanity <URL>` means add the product to the Bathroom Vanities page at `/opt/data/hermes-pages/bathroom-vanities.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanities`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. For each new URL:
+Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Example: `store vanity <URL>` or `add vanity <URL>` means add the product to the Bathroom Vanities page at `/opt/data/hermes-pages/bathroom-vanities.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanities`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. On the page itself, phrase the user-facing instruction with the preferred command: `add vanity <URL>`. For each new URL:
+
+For each new URL:
 1. Fetch/inspect the product page for title, price/specs, and candidate images (Open Graph/product image first; otherwise choose a clear product photo).
 2. If direct fetch is blocked (common with Home Depot/Walmart), use `web_search`/`web_extract` on the product title, model number, and item ID to find reseller mirrors, review pages, or indexed snippets for specs/images. Keep the original user URL as the product link unless Gordon gave a replacement link.
 3. Download the chosen image locally into `assets/` with a stable descriptive filename; do not hotlink fragile vendor CDN URLs unless downloading is blocked. If an image tool is available, visually verify that the saved image is actually a clear product photo.
@@ -179,6 +179,7 @@ Pitfalls:
 - Do **not** protect root-level utility pages like `/bathroom-vanities` with the wiki login snippet. The wiki login currently redirects already-authenticated users to `/wiki/`, and its auth cookie path is `/wiki/`; a root page using `wiki_auth` will appear broken or bounce users back to the wiki/homepage. Keep root utility pages public unless Gordon explicitly asks for a proper root-scoped auth flow.
 - If Gordon says a published link “doesn't work,” do not stop at “HTTP 200” verification. Check redirect/login snippets, index/hub links, and whether the user-visible click path lands on the intended page. Fix the page/link chain before replying.
 - Cloudflare auto-deploy has repeatedly lagged for `/bathroom-vanities`; after push, verify the live page. If stale after retries, deploy an isolated clone of the committed state rather than the dirty worktree.
+- On mobile, product-list cards need obvious association between image and details. Use strong high-contrast card boundaries (e.g. blue border), generous vertical gaps, and a clear separator between image and text; do not rely on subtle dark borders only.
 
 ## Design preferences (from Gordon's feedback)
 
