@@ -165,11 +165,12 @@ Cloudflare Pages auto-deploys on push — typically live within 30 seconds.
 
 ### Personal utility list pages
 
-Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Example: `store vanity <URL>` or `add vanity <URL>` means add the product to the Bathroom Vanities page at `/opt/data/hermes-pages/bathroom-vanities.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanities`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. For each new URL:
+Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Example: `store vanity <URL>` or `add vanity <URL>` means add the product to the Bathroom Vanities page at `/opt/data/hermes-pages/bathroom-vanities.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanities`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. See `references/bathroom-vanities.md` for the current page-specific workflow, known quirks, and verification checklist. For each new URL:
 1. Fetch/inspect the product page for title, price/specs, and candidate images (Open Graph/product image first; otherwise choose a clear product photo).
-2. Download the chosen image locally into `assets/` with a stable descriptive filename; do not hotlink fragile vendor CDN URLs unless downloading is blocked. If an image tool is available, visually verify that the saved image is actually a clear product photo.
-3. Add a card/object to the existing list page without turning it into a wiki-auth page.
-4. Commit only the relevant page/assets, deploy to the `hermes-pages` project, and verify the canonical URL includes the new item and image.
+2. If the product site blocks direct fetches (e.g. Home Depot may return HTTP 403), use web search/extract on the product ID/model and reputable mirrors/resellers to recover metadata and image candidates, but keep the saved card's `url` pointing to Gordon's original product URL.
+3. Download the chosen image locally into `assets/` with a stable descriptive filename; do not hotlink fragile vendor CDN URLs unless downloading is blocked. If an image tool is available, visually verify that the saved image is actually a clear product photo.
+4. Add a card/object to the existing list page without turning it into a wiki-auth page.
+5. Commit only the relevant page/assets, deploy to the `hermes-pages` project, and verify the canonical URL includes the new item and image; if auto-deploy lags, deploy an isolated clone of the committed state so unrelated dirty files are not published.
 
 Pitfalls:
 - Do **not** protect root-level utility pages like `/bathroom-vanities` with the wiki login snippet. The wiki login currently redirects already-authenticated users to `/wiki/`, and its auth cookie path is `/wiki/`; a root page using `wiki_auth` will appear broken or bounce users back to the wiki/homepage. Keep root utility pages public unless Gordon explicitly asks for a proper root-scoped auth flow.
