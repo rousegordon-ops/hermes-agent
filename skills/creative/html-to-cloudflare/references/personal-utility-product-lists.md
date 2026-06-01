@@ -33,10 +33,15 @@ Preferred source order:
 
 Examples from sessions:
 - Home Depot blocked direct Python fetch with `403`. `web_search` found a PrairieGrit mirror for model `21191` / item `316720475`, which provided a product image and specifications; keep the Home Depot URL as the actual card link.
+- Home Depot ORGANNICE item `334843856` / model `R-B12191MB-LED` also blocked direct fetch. Search found an equivalent/similar Toolkiss Shopify product (`square-framed-bathroom-wall-mirrors-aluminum-frame-horizontal-vertical-copy-1`) with `/products/...js` metadata. The variant `B12191MB-LED` exposed price `$468`, dimensions `48'' x 36''`, and image `B12191MB-LED.jpg`; however vision check said that specific image was a cropped/detail shot with logo overlays. A lifestyle image (`11_2fc08f57...jpg`) was less product-isolated but clearer for the card. Keep the original Home Depot URL as the link and label any mirror-derived price as from the similar listing.
 - LightsLux Shopify page exposed JSON-LD and many images. The selected variant had price `$109.99`, size `60CM(23.6")`, color `Coffee`, warm white `3000K`. A variant image was cropped/poor; the Open Graph image was visually verified as a better product-card image.
 - Lamps Plus blocked direct Python fetch with `403`, but `web_extract` could read the page enough for title/description and `web_search` found specs. An ET2/Lighting New York mirror (`et2lightinglights.com`) for `E23423-PC` exposed JSON-LD, full specs, and downloadable product images. Use the mirror for metadata/images but keep Gordon's original Lamps Plus URL as the card link.
 - LBC Lighting Shopify product pages can be fetched directly. For `kuz-vl62224`, JSON-LD exposed rich HTML specs and variant pricing; variant snippets in the page exposed Black/Chrome SKUs (`VL62224-BK`, `VL62224-CH`) and prices. Product images from Shopify CDN may be small but visually usable; verify before saving.
 - Lumens may block direct fetch (`403` / empty `web_extract`). For Modern Forms Vogue, use search results plus reseller/manufacturer pages. 2Modern exposes a Shopify JSON endpoint at `https://www.2modern.com/products/vogue-bathroom-vanity-wall-light.js`, including variants, prices (`$317–$477`), finish/size/CCT options, and Shopify CDN images. Download the selected image locally and visually verify it.
+
+## User interruption / stop signal
+
+If Gordon says `stop` while a page-update workflow is in progress, stop immediately and do not continue executing or narrating planned page changes. Treat it as a hard interruption, not as a cue to keep working from prior context.
 
 ## Multiple URLs in one command
 
