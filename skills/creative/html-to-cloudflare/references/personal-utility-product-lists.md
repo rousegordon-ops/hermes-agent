@@ -1,14 +1,19 @@
 # Personal utility product lists
 
-Session-specific notes for maintaining Gordon's lightweight product-list pages on `hermes-pages`, especially `/bathroom-vanities`.
+Session-specific notes for maintaining Gordon's lightweight product-list pages on `hermes-pages`, especially the bathroom vanity lights list.
 
-## Bathroom vanities command semantics
+## Bathroom vanity lights command semantics
 
-Treat these as equivalent:
-- `store vanity <URL>`
-- `add vanity <URL>`
+Primary current command:
+- `add light <URL>`
 
-Prefer `add vanity <URL>` in user-facing page instructions. Add the product to `/opt/data/hermes-pages/bathroom-vanities.html` and deploy to `https://hermes-pages-d55.pages.dev/bathroom-vanities`.
+Legacy commands may appear in older chat/context, but the public page instruction should say `add light <URL>`, not `add vanity <URL>`. The page title should be **Bathroom Vanity Lights**.
+
+Canonical source and URL:
+- Source: `/opt/data/hermes-pages/bathroom-vanity-lights.html`
+- URL: `https://hermes-pages-d55.pages.dev/bathroom-vanity-lights`
+
+Older names/paths like `/bathroom-vanities` and “Bathroom Vanities” are stale for this list unless Gordon explicitly asks for a redirect/backcompat fix.
 
 ## Required output per item
 
@@ -16,24 +21,26 @@ Prefer `add vanity <URL>` in user-facing page instructions. Add the product to `
 - Save a local image under `/opt/data/hermes-pages/assets/` with a descriptive stable filename.
 - Add useful metadata when available: price, dimensions, finish, specs.
 - Do not add wiki auth or redirect snippets to this root-level utility page.
+- Before commit, grep/read the actual HTML on disk and assert the new item text and image filename are present.
 
 ## Fetching metadata/images
 
 Preferred source order:
 1. Product page JSON-LD / Open Graph metadata.
-2. Shopify variant JSON-LD (`hasVariant`) when the URL has a `variant=` parameter.
+2. Shopify product endpoint (`/products/<handle>.js`) or variant JSON-LD (`hasVariant`) when available.
 3. Search/extract fallback using model/item number and product title.
 4. Reseller mirror pages for specs/images when the original site blocks fetches.
 
-Examples from session:
+Examples from sessions:
 - Home Depot blocked direct Python fetch with `403`. `web_search` found a PrairieGrit mirror for model `21191` / item `316720475`, which provided a product image and specifications; keep the Home Depot URL as the actual card link.
 - LightsLux Shopify page exposed JSON-LD and many images. The selected variant had price `$109.99`, size `60CM(23.6")`, color `Coffee`, warm white `3000K`. A variant image was cropped/poor; the Open Graph image was visually verified as a better product-card image.
 - Lamps Plus blocked direct Python fetch with `403`, but `web_extract` could read the page enough for title/description and `web_search` found specs. An ET2/Lighting New York mirror (`et2lightinglights.com`) for `E23423-PC` exposed JSON-LD, full specs, and downloadable product images. Use the mirror for metadata/images but keep Gordon's original Lamps Plus URL as the card link.
 - LBC Lighting Shopify product pages can be fetched directly. For `kuz-vl62224`, JSON-LD exposed rich HTML specs and variant pricing; variant snippets in the page exposed Black/Chrome SKUs (`VL62224-BK`, `VL62224-CH`) and prices. Product images from Shopify CDN may be small but visually usable; verify before saving.
+- Lumens may block direct fetch (`403` / empty `web_extract`). For Modern Forms Vogue, use search results plus reseller/manufacturer pages. 2Modern exposes a Shopify JSON endpoint at `https://www.2modern.com/products/vogue-bathroom-vanity-wall-light.js`, including variants, prices (`$317–$477`), finish/size/CCT options, and Shopify CDN images. Download the selected image locally and visually verify it.
 
 ## Multiple URLs in one command
 
-If Gordon says `add vanity <URL> <URL>` (or more URLs), do **not** spawn parallel agents against `/opt/data/hermes-pages/bathroom-vanities.html`. Fetch metadata/images for each URL serially, then patch the JS data array once, commit once, deploy once, and verify every new item/image on the canonical page.
+If Gordon says `add light <URL> <URL>` (or more URLs), do **not** spawn parallel agents against `/opt/data/hermes-pages/bathroom-vanity-lights.html`. Fetch metadata/images for each URL serially, then patch the JS data array once, commit once, deploy once, and verify every new item/image on the canonical page.
 
 ## Page UI/legibility
 
@@ -47,18 +54,18 @@ Use vision analysis when available. If the first candidate is cropped, mostly bl
 
 Cloudflare Pages auto-deploy has lagged repeatedly for this page. After push, verify the canonical URL contains the new item text and local image filename. If the live page is stale after 60+ seconds of retries, a forced deploy is needed.
 
-**If Node 22+ is available** (wrangler requires it — system node is v20.19.2):
+**If Node 22+ is available** (wrangler requires it — system node may be older):
 ```bash
 npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true
 ```
 If the worktree has unrelated dirty files, deploy from an isolated clean clone:
 ```bash
-rm -rf /tmp/hermes-pages-vanities-deploy
-git clone --no-local /opt/data/hermes-pages /tmp/hermes-pages-vanities-deploy
-npx -y -p node@22 -p wrangler wrangler pages deploy /tmp/hermes-pages-vanities-deploy --project-name hermes-pages --commit-dirty=true
+rm -rf /tmp/hermes-pages-vanity-lights-deploy
+git clone --no-local /opt/data/hermes-pages /tmp/hermes-pages-vanity-lights-deploy
+npx -y -p node@22 -p wrangler wrangler pages deploy /tmp/hermes-pages-vanity-lights-deploy --project-name hermes-pages --commit-dirty=true
 ```
 
-**If only Node 20 is available** (wrangler won't run): there is no CLI recovery. The content is committed to GitHub and will go live when CF eventually picks up the push. Tell Gordon the content is live or will be shortly, and that the deploy mechanism requires Node 22+ to fix properly next time.
+**If only Node 20 is available** (current wrangler may not run): there is no CLI recovery. The content is committed to GitHub and will go live when CF eventually picks up the push. Tell Gordon the content is committed and deployment is pending.
 
 **Verification pattern** — always check the committed state, not just the live URL:
 ```python
@@ -67,8 +74,8 @@ import subprocess, urllib.request
 r = subprocess.run(['git', 'log', '--oneline', '-1'], cwd='/opt/data/hermes-pages', capture_output=True, text=True)
 print('commit:', r.stdout.strip())
 # 2. Check live
-url = 'https://hermes-pages-d55.pages.dev/bathroom-vanities'
+url = 'https://hermes-pages-d55.pages.dev/bathroom-vanity-lights'
 html = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'}), timeout=20).read().decode('utf-8', 'replace')
-print('WAC in live:', 'WAC' in html)
+print('new item in live:', 'EXPECTED PRODUCT NAME' in html)
 ```
 If the commit is there but the live page is stale, CF missed the webhook — force a deploy or wait.

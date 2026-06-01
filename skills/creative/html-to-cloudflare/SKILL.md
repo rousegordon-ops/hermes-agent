@@ -163,7 +163,9 @@ After updating either index, push from `/opt/data/hermes-pages`, deploy if neede
 
 ### Personal utility list pages
 
-Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Example: `store vanity <URL>` or `add vanity <URL>` means add the product to the Bathroom Vanities page at `/opt/data/hermes-pages/bathroom-vanities.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanities`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. On the page itself, phrase the user-facing instruction with the preferred command: `add vanity <URL>`. For each new URL:
+Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Current example: `add light <URL>` means add the product to the Bathroom Vanity Lights page at `/opt/data/hermes-pages/bathroom-vanity-lights.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanity-lights`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. On the page itself, phrase the user-facing instruction with the preferred command: `add light <URL>` and use the title “Bathroom Vanity Lights” (not “Bathroom Vanities”). For each new URL:
+
+For details and past provider quirks for this page, see `references/personal-utility-product-lists.md`.
 
 For each new URL:
 1. Fetch/inspect the product page for title, price/specs, and candidate images (Open Graph/product image first; otherwise choose a clear product photo).
