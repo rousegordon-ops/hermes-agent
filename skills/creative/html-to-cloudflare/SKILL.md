@@ -380,6 +380,8 @@ Current nav order: Home → Gordon → KLA → Ventura → Sidekick → Fishing 
   ```
 Pitfalls:
 
+- **Verify working-tree content before committing** — When patching a data array or render script into an HTML file, always grep the *actual file on disk* before committing. The patch tool modifies the working tree; if you commit immediately after patching, the old committed state may not contain your new data. Pattern used this session: `with open(path) as f: content = f.read(); assert 'expected content' in content` before `git add`. If the assert fails, the patch didn't land — investigate and re-patch before committing.
+
 - **`rousegordon-ops` is a GitHub USER, not an org** — `https://api.github.com/users/rousegordon-ops/repos` works; `https://api.github.com/orgs/rousegordon-ops/repos` returns 404.
 
 - **Python 3.13 f-string brace collision — CRITICAL** — Literal `{` and `}` in CSS inside f-strings must be doubled to `{{` and `}}`. Python 3.13 added dict unpacking syntax `{**}` as a reserved pattern, making bare `{` in f-strings a syntax error. The script appears to run (compiles OK) but fails at runtime inside `build_page()` with `NameError: name 'border' is not defined` (or whichever CSS property word comes first after the unparsed brace). The error occurs AFTER the truncated HTML has been written to disk — so the file exists with wrong content and `git status` shows "nothing to commit." **Verification:** After running md2html.py, ALWAYS grep the actual output file for expected content before committing. Example failure: `table { border-collapse: ... }` → `NameError: name 'border'`. **Fix:** Identify the `<style>` block in the f-string and replace ALL `{` with `{{` and all `}` with `}}`:
