@@ -45,15 +45,30 @@ Use vision analysis when available. If the first candidate is cropped, mostly bl
 
 ## Deploy verification
 
-Cloudflare Pages auto-deploy has lagged repeatedly for this page. After push:
-- Verify the canonical URL contains the new item text and local image filename.
-- Verify the image URL returns 200 and an image content type.
-- If stale after retries, deploy a clean committed clone:
+Cloudflare Pages auto-deploy has lagged repeatedly for this page. After push, verify the canonical URL contains the new item text and local image filename. If the live page is stale after 60+ seconds of retries, a forced deploy is needed.
 
+**If Node 22+ is available** (wrangler requires it — system node is v20.19.2):
+```bash
+npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true
+```
+If the worktree has unrelated dirty files, deploy from an isolated clean clone:
 ```bash
 rm -rf /tmp/hermes-pages-vanities-deploy
 git clone --no-local /opt/data/hermes-pages /tmp/hermes-pages-vanities-deploy
 npx -y -p node@22 -p wrangler wrangler pages deploy /tmp/hermes-pages-vanities-deploy --project-name hermes-pages --commit-dirty=true
 ```
 
-This avoids deploying unrelated dirty files from `/opt/data/hermes-pages`.
+**If only Node 20 is available** (wrangler won't run): there is no CLI recovery. The content is committed to GitHub and will go live when CF eventually picks up the push. Tell Gordon the content is live or will be shortly, and that the deploy mechanism requires Node 22+ to fix properly next time.
+
+**Verification pattern** — always check the committed state, not just the live URL:
+```python
+import subprocess, urllib.request
+# 1. Confirm commit
+r = subprocess.run(['git', 'log', '--oneline', '-1'], cwd='/opt/data/hermes-pages', capture_output=True, text=True)
+print('commit:', r.stdout.strip())
+# 2. Check live
+url = 'https://hermes-pages-d55.pages.dev/bathroom-vanities'
+html = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'}), timeout=20).read().decode('utf-8', 'replace')
+print('WAC in live:', 'WAC' in html)
+```
+If the commit is there but the live page is stale, CF missed the webhook — force a deploy or wait.

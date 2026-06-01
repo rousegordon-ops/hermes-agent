@@ -424,3 +424,29 @@ Pitfalls:
 - **Git clone private repos works with the PAT** — `GIT_TERMINAL_PROMPT=0 git clone https://github.com/rousegordon-ops/SidekickStudio.git` succeeds. Don't assume a repo is inaccessible without trying.
 
 - **Source repo is ground truth over session memory** — When Gordon says "get the latest info from the source repo," clone it and read actual files. Don't rely on wiki pages that may be stale. The source repo is authoritative.
+
+## Critical Deployment Failures and How to Recover
+
+These are session-proven failure patterns. When a normal push-and-wait doesn't work, use this decision tree:
+
+### Pattern 1: Git push succeeds but live page is stale
+
+Symptoms: `git push` returns `To https://github.com/...`. `git log` shows the commit on `main`. Live URL returns old content across all retry attempts. GitHub API confirms the file has the new content.
+
+Root cause: Cloudflare Pages did not receive (or ignored) the GitHub webhook trigger.
+
+Recovery options (in order of feasibility):
+1. **wrangler force-deploy** — Requires Node 22+. Use `npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true`. This bypasses the GitHub webhook entirely.
+2. **Isolated clean deploy** — If the worktree has unrelated dirty files, clone the committed state to a temp dir and deploy from there: `rm -rf /tmp/hermes-pages-deploy && git clone --no-local /opt/data/hermes-pages /tmp/hermes-pages-deploy && npx -y -p node@22 -p wrangler wrangler pages deploy /tmp/hermes-pages-deploy --project-name hermes-pages --commit-dirty=true`
+3. **Cloudflare Dashboard** — Trigger manually at dash.cloudflare.com → Pages → hermes-pages → Trigger deployment.
+4. **No recovery available** — If no Node 22+, no CF credentials, and no Dashboard access: the content is committed to GitHub and will eventually go live when CF processes the backlog. Tell Gordon.
+
+### Pattern 2: Wrangler returns "Project not found"
+
+Cause: Wrong project name. The Pages project is named `hermes-pages`, not `hermes-pages-d55`.
+
+Fix: Always use `--project-name hermes-pages`.
+
+### Pattern 3: Verification returns 404 but the URL looks right
+
+The Pages domain `hermes-pages-d55.pages.dev` serves from the `hermes-pages` project. A 404 from this domain means the file isn't in that project yet, not that the URL is wrong. Push or deploy the file to the correct project.

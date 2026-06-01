@@ -20,11 +20,9 @@ Session-derived details for maintaining Gordon's lightweight bathroom vanity lis
 
 ## Known quirks
 
-- Cloudflare Pages auto-deploy may lag or miss pushes. If verification stays stale, deploy an isolated clone of the committed state:
-  ```bash
-  rm -rf /tmp/hermes-pages-vanities-deploy
-  git clone --no-local /opt/data/hermes-pages /tmp/hermes-pages-vanities-deploy
-  npx -y -p node@22 -p wrangler wrangler pages deploy /tmp/hermes-pages-vanities-deploy --project-name hermes-pages --commit-dirty=true
-  ```
+- **Auto-deploy can silently fail** — GitHub push succeeds, git log confirms the commit, but the live page stays stale. This happened with WAC Lighting WS-63724 entry. Root cause: Cloudflare Pages missed the GitHub webhook trigger. Recovery:
+  - If Node 22+ is available: `npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true`
+  - If only Node 20: no CLI recovery — tell Gordon the content is on GitHub and will go live when CF processes it.
+  - Always verify the git commit state before assuming a deploy problem is the issue.
 - Home Depot product pages may return HTTP 403 to direct Python fetches and `web_extract`; use search results and mirror/reseller pages for metadata/image, but preserve the original Home Depot URL in the card.
 - Do not rely on HTTP 200 alone when Gordon says a link is broken; check auth redirects, login snippets, hub/index links, and the full click path.
