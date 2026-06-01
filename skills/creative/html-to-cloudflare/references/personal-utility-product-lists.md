@@ -43,9 +43,28 @@ Examples from sessions:
 
 If Gordon says `stop` while a page-update workflow is in progress, stop immediately and do not continue executing or narrating planned page changes. Treat it as a hard interruption, not as a cue to keep working from prior context.
 
+## Recessed gimbal lights command semantics
+
+Primary current command:
+- `add gimbal <URL>`
+
+Canonical source and URL:
+- Source: `/opt/data/hermes-pages/recessed-gimbal-lights.html`
+- URL: `https://hermes-pages-d55.pages.dev/recessed-gimbal-lights`
+
+This page is for recessed gimbal lights to illuminate art on walls. For each new product, prioritize metadata that matters for art lighting:
+- CRI / color quality (high CRI is important)
+- Tilt/rotation adjustability angle
+- Beam spread / beam angle
+- Whether beam spread is fixed or controllable
+- Whether it uses a swappable MR16/GU10-style lamp (beam can be changed by bulb choice) or an integrated LED module
+- Cost, aperture/trim size, finish, dimming, CCT, and installation notes
+
+Add objects to `window.__GIMBALS` with fields: `name`, `url`, `img`, `price`, `dimensions`, `finish`, `cri`, `adjustability`, `beam`, `lamp`, `specs`, and `artFit` when available. Save images locally under `/opt/data/hermes-pages/assets/`, visually verify clear product images when possible, commit, deploy, and verify the canonical URL contains the new product and image filename.
+
 ## Multiple URLs in one command
 
-If Gordon says `add light <URL> <URL>` (or more URLs), do **not** spawn parallel agents against `/opt/data/hermes-pages/bathroom-vanity-lights.html`. Fetch metadata/images for each URL serially, then patch the JS data array once, commit once, deploy once, and verify every new item/image on the canonical page.
+If Gordon says `add light <URL> <URL>` or `add gimbal <URL> <URL>` (or more URLs), do **not** spawn parallel agents against the shared HTML file. Fetch metadata/images for each URL serially, then patch the appropriate JS data array once, commit once, deploy once, and verify every new item/image on the canonical page.
 
 ## Page UI/legibility
 
