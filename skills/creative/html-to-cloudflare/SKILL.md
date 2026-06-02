@@ -131,6 +131,18 @@ Always use `npx -y -p node@22 -p wrangler wrangler pages deploy <dir> --project-
 
 For LLM-backed static apps, especially apps that call a Cloudflare Pages Function and should leverage an existing local/site knowledge base, follow `references/llm-backed-static-apps.md`: keep secrets server-side, include a fallback/example mode, sanitize model JSON, surface KB grounding in the UI, run syntax checks, deploy, and verify the canonical URL plus API response.
 
+## Generated compendium pages (gbrain → HTML)
+
+`/opt/data/hermes-pages/hermes-memories.html` is a single-page HTML compendium of Gordon's **gbrain** knowledge base. It is NOT generated from the static HTML wiki at `/opt/data/hermes-pages/wiki/` — the eyebrow div names the gbrain runtime DB. To regenerate it from current gbrain content:
+
+```bash
+python3 /opt/data/skills/creative/html-to-cloudflare/scripts/gbrain-to-hermes-memories.py
+npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages \
+  --project-name hermes-pages --commit-dirty=true
+```
+
+The script exports all gbrain pages to a temp dir, renders each to HTML, and composes a TOC + per-page section view. The SHA-256 client-side auth gate (cookie `hermes_memories_auth=1`) is preserved verbatim from the existing page so Gordon's credentials keep working. See `references/gbrain-source-pipeline.md` for source sync, export details, and the two parallel content sources for hermes-pages.
+
 1. Edit static HTML directly under `/opt/data/hermes-pages`.
 2. Deploy with Wrangler to the **project name `hermes-pages`**:
    ```bash
@@ -156,11 +168,11 @@ Pitfalls:
 
 When the user asks whether a page/feature is generated from source X (e.g. "is `hermes-memories.html` generated from gbrain?"):
 
-1. **Open the file and look for provenance strings.** Many generated pages contain explicit "Generated from <source>" markers in their HTML/CSS/comments. For `hermes-memories.html`, the eyebrow div says "Generated from /opt/data/hermes-pages/wiki" verbatim. That's the truth — no need to read scripts.
+1. **Open the file and look for provenance strings.** Many generated pages contain explicit "Generated from <source>" markers in their HTML/CSS/comments. **For `hermes-memories.html`, the eyebrow div names the gbrain runtime DB (`/opt/data/.gbrain`)** — that is the source. Do not claim it comes from the static HTML wiki; the name "wiki" is historical, not semantic. Gordon has been emphatic: hermes-memories is an HTML rendering of gbrain, full stop.
 2. **If the marker is absent**, `grep -l "<claimed_source>"` the candidate source dir for the page's distinctive content (e.g. unique headings, page names) to confirm what produced it.
 3. **If you guessed wrong, correct immediately and explicitly.** A wrong "yes" leaves the user building on a false model. Say "Correction: my previous answer was wrong — the page says it comes from X, not Y. Sorry for the confusion."
 
-Pitfall: pattern-matching the question to a plausible source without checking. The `html-to-cloudflare` skill is loaded because Gordon edits `/opt/data/hermes-pages/`; that doesn't mean every file in it flows from the wiki pipeline. Each file has its own provenance.
+Pitfall: pattern-matching the question to a plausible source without checking. The `html-to-cloudflare` skill is loaded because Gordon edits `/opt/data/hermes-pages/`; that doesn't mean every file in it flows from the wiki pipeline. Each file has its own provenance. When the page itself names a source, that is the truth — do not invent a different source from naming intuition.
 
 ## Pre-deletion / pre-modification verification
 
