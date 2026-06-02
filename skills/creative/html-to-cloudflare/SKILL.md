@@ -14,7 +14,7 @@ metadata:
 
 Generate HTML content and publish it to Gordon's personal Cloudflare Pages deployment. **The canonical workflow for any generated HTML that Gordon wants to view live without copy-pasting.**
 
-## Workflow
+## Verify pipeline source before answering "is X generated from Y?"
 
 1. **Generate HTML** — write the content to a local file (typically in `/opt/data/repo/` or wherever the work is happening)
 2. **Push to hermes-pages** — commit and push to the `hermes-pages` repo. **NOTE: git push to GitHub does NOT trigger Cloudflare deploy for this project.** Confirmed via the Cloudflare API: `POST /accounts/{id}/pages/projects/hermes-pages/deployments/{id}/retry` returns "You cannot retry a Direct Upload deployment. Retries are only possible for builds." The `hermes-pages` project uses **Direct Upload only** — git push to GitHub is for source backup/version control, not deployment. Always follow step 4.
@@ -151,6 +151,27 @@ Pitfalls:
 - `--project-name hermes-pages-d55` fails with "Project not found"; use `hermes-pages`.
 - Avoid `curl | python` verification patterns; security tooling may block or require approval. Fetch inside Python instead.
 - A successful deploy prints a preview URL, but Gordon's preferred public URL remains `https://hermes-pages-d55.pages.dev/`.
+
+## Verify pipeline source before answering "is X generated from Y?"
+
+When the user asks whether a page/feature is generated from source X (e.g. "is `hermes-memories.html` generated from gbrain?"):
+
+1. **Open the file and look for provenance strings.** Many generated pages contain explicit "Generated from <source>" markers in their HTML/CSS/comments. For `hermes-memories.html`, the eyebrow div says "Generated from /opt/data/hermes-pages/wiki" verbatim. That's the truth — no need to read scripts.
+2. **If the marker is absent**, `grep -l "<claimed_source>"` the candidate source dir for the page's distinctive content (e.g. unique headings, page names) to confirm what produced it.
+3. **If you guessed wrong, correct immediately and explicitly.** A wrong "yes" leaves the user building on a false model. Say "Correction: my previous answer was wrong — the page says it comes from X, not Y. Sorry for the confusion."
+
+Pitfall: pattern-matching the question to a plausible source without checking. The `html-to-cloudflare` skill is loaded because Gordon edits `/opt/data/hermes-pages/`; that doesn't mean every file in it flows from the wiki pipeline. Each file has its own provenance.
+
+## Pre-deletion / pre-modification verification
+
+Before deleting or moving any page, wiki, or section in `/opt/data/hermes-pages/`:
+
+1. **Confirm with the user** what URL they want gone (especially if the request references a page you don't immediately recognize).
+2. **Check the page on disk** — `grep -l <page>` the source dir AND the parent index to make sure you understand all the references to it. For wiki pages, search the hub index for the link and any sub-page that links back to it.
+3. **Verify the live URL** is the one Gordon means (not a similarly-named one elsewhere). `curl -sI <url>` and check the body for the title.
+4. **For wikis specifically:** confirm whether the source is the markdown pipeline (now retired — wiki pages are hand-edited HTML at `/opt/data/hermes-pages/wiki/`) or a different generator. Removing the wrong file leaves orphan references.
+
+Pitfall: I once deleted `wiki/hobbies/alcove-bathtubs.html` without first checking the `wiki/projects/alcove-bathtubs.html` copy that was the actual live link. The hub index pointed to the projects copy, so the deletion was harmless, but the verification step would have caught a different intent.
 
 ## Homepage and hub index maintenance
 
