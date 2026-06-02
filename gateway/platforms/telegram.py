@@ -76,6 +76,7 @@ from gateway.platforms.base import (
     resolve_proxy_url,
     SUPPORTED_VIDEO_TYPES,
     SUPPORTED_DOCUMENT_TYPES,
+    SUPPORTED_IMAGE_DOCUMENT_TYPES,
     utf16_len,
     _prefix_within_utf16_limit,
 )
@@ -2939,23 +2940,15 @@ class TelegramAdapter(BasePlatformAdapter):
                     mime_to_ext = {v: k for k, v in SUPPORTED_DOCUMENT_TYPES.items()}
                     ext = mime_to_ext.get(doc.mime_type, "")
 
-                image_document_types = {
-                    ".png": "image/png",
-                    ".jpg": "image/jpeg",
-                    ".jpeg": "image/jpeg",
-                    ".webp": "image/webp",
-                    ".gif": "image/gif",
-                }
-
                 if not ext and doc.mime_type:
-                    image_mime_to_ext = {v: k for k, v in image_document_types.items()}
+                    image_mime_to_ext = {v: k for k, v in SUPPORTED_IMAGE_DOCUMENT_TYPES.items()}
                     ext = image_mime_to_ext.get(doc.mime_type, "")
 
                 if not ext and doc.mime_type:
                     video_mime_to_ext = {v: k for k, v in SUPPORTED_VIDEO_TYPES.items()}
                     ext = video_mime_to_ext.get(doc.mime_type, "")
 
-                if ext in image_document_types:
+                if ext in SUPPORTED_IMAGE_DOCUMENT_TYPES:
                     # Check file size (Telegram Bot API limit: 20 MB)
                     MAX_DOC_BYTES = 20 * 1024 * 1024
                     if not doc.file_size or doc.file_size > MAX_DOC_BYTES:
@@ -2971,7 +2964,7 @@ class TelegramAdapter(BasePlatformAdapter):
                     image_bytes = await file_obj.download_as_bytearray()
                     cached_path = cache_image_from_bytes(bytes(image_bytes), ext=ext)
                     event.media_urls = [cached_path]
-                    event.media_types = [image_document_types[ext]]
+                    event.media_types = [SUPPORTED_IMAGE_DOCUMENT_TYPES[ext]]
                     event.message_type = MessageType.PHOTO
                     logger.info("[Telegram] Cached user image document at %s", cached_path)
                     await self.handle_message(event)
@@ -2991,7 +2984,7 @@ class TelegramAdapter(BasePlatformAdapter):
                 # Check if supported
                 if ext not in SUPPORTED_DOCUMENT_TYPES:
                     supported_types = sorted(
-                        set(SUPPORTED_DOCUMENT_TYPES) | set(SUPPORTED_VIDEO_TYPES) | set(image_document_types)
+                        set(SUPPORTED_DOCUMENT_TYPES) | set(SUPPORTED_VIDEO_TYPES) | set(SUPPORTED_IMAGE_DOCUMENT_TYPES)
                     )
                     supported_list = ", ".join(supported_types)
                     event.text = (
