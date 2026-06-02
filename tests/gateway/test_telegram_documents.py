@@ -146,6 +146,9 @@ def _redirect_cache(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "gateway.platforms.base.VIDEO_CACHE_DIR", tmp_path / "video_cache"
     )
+    monkeypatch.setattr(
+        "gateway.platforms.base.IMAGE_CACHE_DIR", tmp_path / "image_cache"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -244,6 +247,30 @@ class TestDocumentDownloadBlock:
         event = adapter.handle_message.call_args[0][0]
         assert "file text" in event.text
         assert "Please summarize" in event.text
+
+    @pytest.mark.asyncio
+    async def test_png_document_is_cached_as_image(self, adapter):
+        """A PNG uploaded as a Telegram document should still be usable as an image."""
+        png_bytes = b"\x89PNG\r\n\x1a\n" + b"fake-png-payload"
+        file_obj = _make_file_obj(png_bytes)
+        file_obj.file_path = "documents/screenshot.png"
+        doc = _make_document(
+            file_name="screenshot.png",
+            mime_type="image/png",
+            file_size=len(png_bytes),
+            file_obj=file_obj,
+        )
+        msg = _make_message(document=doc, caption="use this for FRIHULT")
+        update = _make_update(msg)
+
+        await adapter._handle_media_message(update, MagicMock())
+        event = adapter.handle_message.call_args[0][0]
+        assert event.message_type == MessageType.PHOTO
+        assert event.text == "use this for FRIHULT"
+        assert len(event.media_urls) == 1
+        assert event.media_urls[0].endswith(".png")
+        assert os.path.exists(event.media_urls[0])
+        assert event.media_types == ["image/png"]
 
     @pytest.mark.asyncio
     async def test_zip_document_cached(self, adapter):

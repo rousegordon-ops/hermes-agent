@@ -84,5 +84,18 @@ RUN uv venv && \
 ENV HERMES_WEB_DIST=/opt/hermes/hermes_cli/web_dist
 ENV HERMES_HOME=/opt/data
 ENV PATH="/opt/data/.local/bin:${PATH}"
+
+# Redirect transient tool caches off the persistent /opt/data volume.
+# Without these, ~/.npm (~1 GB), ~/.cache (~280 MB), and pip's cache pile
+# up on the 4.6 GB Railway volume and eventually take it to 100%
+# ("[Errno 28] No space left on device"). /tmp is on the container's
+# overlay filesystem (1 TB+ avail) and is intentionally wiped on
+# restart — exactly the lifetime we want for a cache.
+# HOME stays at /opt/data/home for subprocesses (preserves git/ssh/gh/
+# railway auth state); only the cache-specific vars below are redirected.
+ENV NPM_CONFIG_CACHE=/tmp/.npm-cache
+ENV PIP_CACHE_DIR=/tmp/.pip-cache
+ENV XDG_CACHE_HOME=/tmp/.cache
+ENV UV_CACHE_DIR=/tmp/.uv-cache
 ENTRYPOINT [ "/usr/bin/tini", "-g", "--", "/opt/hermes/docker/entrypoint.sh" ]
 CMD [ "gateway", "run" ]

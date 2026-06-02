@@ -57,6 +57,12 @@ fi
 # --- Running as hermes from here ---
 source "${INSTALL_DIR}/.venv/bin/activate"
 
+# Create transient cache directories on the container's overlay filesystem
+# (/tmp), wiped on restart by design. The Dockerfile sets NPM_CONFIG_CACHE,
+# PIP_CACHE_DIR, XDG_CACHE_HOME, and UV_CACHE_DIR to these paths so the
+# subprocess HOME at /opt/data/home/ never accumulates ~/.npm or ~/.cache.
+mkdir -p /tmp/.npm-cache /tmp/.pip-cache /tmp/.cache /tmp/.uv-cache
+
 # Create essential directory structure.  Cache and platform directories
 # (cache/images, cache/audio, platforms/whatsapp, etc.) are created on
 # demand by the application — don't pre-create them here so new installs
@@ -65,6 +71,21 @@ source "${INSTALL_DIR}/.venv/bin/activate"
 # ssh, gh, npm …).  Without it those tools write to /root which is
 # ephemeral and shared across profiles.  See issue #4426.
 mkdir -p "$HERMES_HOME"/{cron,sessions,logs,hooks,memories,skills,skins,plans,workspace,home}
+
+# Sweep accumulated junk on the persistent volume so a stalled deploy
+# doesn't leave the volume full forever. Idempotent; safe to re-run.
+# - npm/pip/XDG caches that landed before the cache redirect was in place
+# - old session transcripts (>30 days) and gbrain backup snapshots (>14 days)
+# Quiet on stdout unless something is actually deleted.
+rm -rf "$HERMES_HOME"/{.npm,.cache,.pip,.npm-global/_cacache} \
+       "$HERMES_HOME/home"/{.npm,.cache,.pip} 2>/dev/null || true
+find "$HERMES_HOME" -maxdepth 2 \
+    \( -name "*backup-*" -o -name ".*backup-*" \) \
+    -mtime +14 -print -exec rm -rf {} + 2>/dev/null || true
+if [ -d "$HERMES_HOME/sessions" ]; then
+    find "$HERMES_HOME/sessions" -maxdepth 1 -type f -name "*.json" \
+        -mtime +30 -delete 2>/dev/null || true
+fi
 
 # .env
 if [ ! -f "$HERMES_HOME/.env" ]; then
@@ -260,6 +281,20 @@ if [ -f "$COST_DAEMON" ] && [ -n "${OPENROUTER_API_KEY:-}" ] && \
 else
     [ -f "$COST_DAEMON" ] && \
         echo "[entrypoint] cost_report_daemon disabled (need OPENROUTER_API_KEY + TELEGRAM_BOT_TOKEN + TELEGRAM_HOME_CHANNEL)"
+fi
+
+# ---------- Disk-pressure alerter ----------
+# Hourly check on /opt/data; pings Telegram once when the volume crosses
+# HERMES_DISK_ALERT_PCT (default 80%). Sits next to the boot-time sweep
+# so a slow-growth leak surfaces before the volume hits 100%.
+DISK_DAEMON="$INSTALL_DIR/scripts/disk_pressure_daemon.py"
+if [ -f "$DISK_DAEMON" ] && [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && \
+   [ -n "${TELEGRAM_HOME_CHANNEL:-}" ]; then
+    python3 "$DISK_DAEMON" >> "$HERMES_HOME/disk-pressure-daemon.log" 2>&1 &
+    echo "[entrypoint] Spawned disk_pressure_daemon (pid $!)"
+else
+    [ -f "$DISK_DAEMON" ] && \
+        echo "[entrypoint] disk_pressure_daemon disabled (need TELEGRAM_BOT_TOKEN + TELEGRAM_HOME_CHANNEL)"
 fi
 
 # ---------- Enforce critical config on every boot ----------

@@ -618,6 +618,10 @@ Check logs first:
 grep -i "failed to send\|error" ~/.hermes/logs/gateway.log | tail -20
 ```
 
+### Telegram image documents (.png/.jpg sent as files)
+
+If Telegram receives a PNG/JPG/WebP/GIF as a **document** instead of a photo, route it through image-document handling before unsupported-document rejection. Preserve size limits and cache it as an image. See `references/telegram-image-documents.md` for the Gordon regression-test pattern and deployment note.
+
 ### Telegram: "Can you see the HTML pages you sent me earlier?"
 
 No. Hermes cannot see Telegram's conversation history automatically — each session starts fresh. See `references/telegram-chat-history.md` for the full architecture explanation and session_search workaround.

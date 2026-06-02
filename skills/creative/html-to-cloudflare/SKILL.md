@@ -34,6 +34,13 @@ Generate HTML content and publish it to Gordon's personal Cloudflare Pages deplo
    ```
    The `--commit-dirty=true` flag deploys the current working tree without requiring a new commit.
 
+   If `/opt/data/hermes-pages` has unrelated dirty files, do **not** deploy the dirty worktree blindly. Deploy an isolated clone of the committed state instead:
+   ```bash
+   rm -rf /tmp/hermes-pages-deploy
+   git clone --no-local /opt/data/hermes-pages /tmp/hermes-pages-deploy
+   npx -y -p node@22 -p wrangler wrangler pages deploy /tmp/hermes-pages-deploy --project-name hermes-pages --commit-dirty=true
+   ```
+
 ## Git credentials setup (critical)
 
 The `publish_html` tool requires `GITHUB_TOKEN` in the environment. It's NOT automatically set — read it from the credentials file:
@@ -149,12 +156,32 @@ Pitfalls:
 
 There are two different indexes; update the one the user actually means:
 
-- Public homepage `https://hermes-pages-d55.pages.dev/` → `/opt/data/hermes-pages/index.html`. If Gordon says “I don’t see it here” and links the root URL, add a `.page-card` link here and verify the root page contains the new link.
+- Public homepage `https://hermes-pages-d55.pages.dev/` → `/opt/data/hermes-pages/index.html`. If Gordon says “I don’t see it here” and links the root URL, add a `.page-card` link here and verify the root page contains the new link. If `index.html` is root-owned or otherwise not writable by the Hermes user, do not block the standalone page/deploy; mention that the page is live but homepage indexing needs a permission fix or operator action.
 - Private wiki hub `https://hermes-pages-d55.pages.dev/wiki/` → `/opt/data/hermes-pages/wiki/index.html`. Every time a new wiki page is published, add a link in the appropriate section using the same pattern as existing links — no summary or description, just a link.
 
 After updating either index, push from `/opt/data/hermes-pages`, deploy if needed, and verify the canonical URL. Do not assume publishing a standalone HTML file makes it discoverable from the homepage.
 
-Cloudflare Pages auto-deploys on push — typically live within 30 seconds.
+### Personal utility list pages
+
+Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Current example: `add light <URL>` means add the product to the Bathroom Vanity Lights page at `/opt/data/hermes-pages/bathroom-vanity-lights.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanity-lights`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. On the page itself, phrase the user-facing instruction with the preferred command: `add light <URL>` and use the title “Bathroom Vanity Lights” (not “Bathroom Vanities”). For each new URL:
+
+For details and past provider quirks for this page, see `references/personal-utility-product-lists.md`.
+
+For each new URL:
+1. Fetch/inspect the product page for title, price/specs, and candidate images (Open Graph/product image first; otherwise choose a clear product photo).
+2. If direct fetch is blocked (common with Home Depot/Walmart), use `web_search`/`web_extract` on the product title, model number, and item ID to find reseller mirrors, review pages, or indexed snippets for specs/images. Keep the original user URL as the product link unless Gordon gave a replacement link.
+3. Download the chosen image locally into `assets/` with a stable descriptive filename; do not hotlink fragile vendor CDN URLs unless downloading is blocked. If an image tool is available, visually verify that the saved image is actually a clear product photo.
+4. If visual verification says the first image is poor (cropped, mostly blank, not centered, wrong product), try another candidate image such as `og:image`, Shopify JSON-LD variant image, or a product mirror before adding it.
+5. Add a card/object to the existing list page without turning it into a wiki-auth page. Keep existing product cards intact; patch only the JS data array/object.
+6. Commit only the relevant page/assets, deploy to the `hermes-pages` project, and verify the canonical URL includes the new item and image.
+
+Session notes for this utility workflow are in `references/personal-utility-product-lists.md`.
+
+Pitfalls:
+- Do **not** protect root-level utility pages like `/bathroom-vanities` with the wiki login snippet. The wiki login currently redirects already-authenticated users to `/wiki/`, and its auth cookie path is `/wiki/`; a root page using `wiki_auth` will appear broken or bounce users back to the wiki/homepage. Keep root utility pages public unless Gordon explicitly asks for a proper root-scoped auth flow.
+- If Gordon says a published link “doesn't work,” do not stop at “HTTP 200” verification. Check redirect/login snippets, index/hub links, and whether the user-visible click path lands on the intended page. Fix the page/link chain before replying.
+- Cloudflare auto-deploy has repeatedly lagged for `/bathroom-vanities`; after push, verify the live page. If stale after retries, deploy an isolated clone of the committed state rather than the dirty worktree.
+- On mobile, product-list cards need obvious association between image and details. Use strong high-contrast card boundaries (e.g. blue border), generous vertical gaps, and a clear separator between image and text; do not rely on subtle dark borders only.
 
 ## Design preferences (from Gordon's feedback)
 
@@ -399,3 +426,29 @@ Pitfalls:
 - **Git clone private repos works with the PAT** — `GIT_TERMINAL_PROMPT=0 git clone https://github.com/rousegordon-ops/SidekickStudio.git` succeeds. Don't assume a repo is inaccessible without trying.
 
 - **Source repo is ground truth over session memory** — When Gordon says "get the latest info from the source repo," clone it and read actual files. Don't rely on wiki pages that may be stale. The source repo is authoritative.
+
+## Critical Deployment Failures and How to Recover
+
+These are session-proven failure patterns. When a normal push-and-wait doesn't work, use this decision tree:
+
+### Pattern 1: Git push succeeds but live page is stale
+
+Symptoms: `git push` returns `To https://github.com/...`. `git log` shows the commit on `main`. Live URL returns old content across all retry attempts. GitHub API confirms the file has the new content.
+
+Root cause: Cloudflare Pages did not receive (or ignored) the GitHub webhook trigger.
+
+Recovery options (in order of feasibility):
+1. **wrangler force-deploy** — Requires Node 22+. Use `npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true`. This bypasses the GitHub webhook entirely.
+2. **Isolated clean deploy** — If the worktree has unrelated dirty files, clone the committed state to a temp dir and deploy from there: `rm -rf /tmp/hermes-pages-deploy && git clone --no-local /opt/data/hermes-pages /tmp/hermes-pages-deploy && npx -y -p node@22 -p wrangler wrangler pages deploy /tmp/hermes-pages-deploy --project-name hermes-pages --commit-dirty=true`
+3. **Cloudflare Dashboard** — Trigger manually at dash.cloudflare.com → Pages → hermes-pages → Trigger deployment.
+4. **No recovery available** — If no Node 22+, no CF credentials, and no Dashboard access: the content is committed to GitHub and will eventually go live when CF processes the backlog. Tell Gordon.
+
+### Pattern 2: Wrangler returns "Project not found"
+
+Cause: Wrong project name. The Pages project is named `hermes-pages`, not `hermes-pages-d55`.
+
+Fix: Always use `--project-name hermes-pages`.
+
+### Pattern 3: Verification returns 404 but the URL looks right
+
+The Pages domain `hermes-pages-d55.pages.dev` serves from the `hermes-pages` project. A 404 from this domain means the file isn't in that project yet, not that the URL is wrong. Push or deploy the file to the correct project.

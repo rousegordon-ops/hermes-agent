@@ -702,6 +702,17 @@ SUPPORTED_VIDEO_TYPES = {
     ".avi": "video/x-msvideo",
 }
 
+# Image MIME types accepted when an image is sent as a Telegram *document*
+# (rather than a compressed photo). Cached as photos so the rest of the
+# media pipeline treats them uniformly.
+SUPPORTED_IMAGE_DOCUMENT_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
+
 
 def get_video_cache_dir() -> Path:
     """Return the video cache directory, creating it if it doesn't exist."""
