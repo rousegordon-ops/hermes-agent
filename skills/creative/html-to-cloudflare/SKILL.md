@@ -17,7 +17,7 @@ Generate HTML content and publish it to Gordon's personal Cloudflare Pages deplo
 ## Workflow
 
 1. **Generate HTML** — write the content to a local file (typically in `/opt/data/repo/` or wherever the work is happening)
-2. **Push to hermes-pages** — commit and push to the `hermes-pages` repo. Cloudflare Pages auto-deploys on push, but it can lag or miss a push.
+2. **Push to hermes-pages** — commit and push to the `hermes-pages` repo. **NOTE: git push to GitHub does NOT trigger Cloudflare deploy for this project.** Confirmed via the Cloudflare API: `POST /accounts/{id}/pages/projects/hermes-pages/deployments/{id}/retry` returns "You cannot retry a Direct Upload deployment. Retries are only possible for builds." The `hermes-pages` project uses **Direct Upload only** — git push to GitHub is for source backup/version control, not deployment. Always follow step 4.
 3. **Verify immediately** — always check the deployed URL before declaring success:
    ```python
    import urllib.request
@@ -27,12 +27,12 @@ Generate HTML content and publish it to Gordon's personal Cloudflare Pages deplo
    html = resp.read().decode('utf-8', 'replace')
    assert 'expected content' in html, f"Unexpected page: {html[:200]}"
    ```
-4. **Force-deploy if verification fails** — if the page is stale or missing despite a successful git push, Cloudflare missed the trigger. Deploy manually:
+4. **Deploy via wrangler (REQUIRED, not optional)** — every publish needs a wrangler deploy, even if you just pushed to GitHub:
    ```bash
    cd /opt/data/hermes-pages
    npx -y -p node@22 -p wrangler wrangler pages deploy . --project-name hermes-pages --commit-dirty=true
    ```
-   The `--commit-dirty=true` flag deploys the current working tree without requiring a new commit.
+   The `--commit-dirty=true` flag deploys the current working tree without requiring a new commit. The deploy prints a preview URL like `https://<hash>.hermes-pages-d55.pages.dev` — the canonical public URL is still `https://hermes-pages-d55.pages.dev/<path>`.
 
    If `/opt/data/hermes-pages` has unrelated dirty files, do **not** deploy the dirty worktree blindly. Deploy an isolated clone of the committed state instead:
    ```bash
@@ -159,7 +159,46 @@ There are two different indexes; update the one the user actually means:
 - Public homepage `https://hermes-pages-d55.pages.dev/` → `/opt/data/hermes-pages/index.html`. If Gordon says “I don’t see it here” and links the root URL, add a `.page-card` link here and verify the root page contains the new link. If `index.html` is root-owned or otherwise not writable by the Hermes user, do not block the standalone page/deploy; mention that the page is live but homepage indexing needs a permission fix or operator action.
 - Private wiki hub `https://hermes-pages-d55.pages.dev/wiki/` → `/opt/data/hermes-pages/wiki/index.html`. Every time a new wiki page is published, add a link in the appropriate section using the same pattern as existing links — no summary or description, just a link.
 
-After updating either index, push from `/opt/data/hermes-pages`, deploy if needed, and verify the canonical URL. Do not assume publishing a standalone HTML file makes it discoverable from the homepage.
+After updating either index, push from `/opt/data/hermes-pages`, deploy with wrangler, and verify the canonical URL. Do not assume publishing a standalone HTML file makes it discoverable from the homepage.
+
+### Homepage card structure and de-duplication
+
+The homepage (`/opt/data/hermes-pages/index.html`) groups pages into flat `.page-card` links inside `<div class="page-grid">` sections. The card pattern is:
+
+```html
+<a href="<path>" class="page-card">
+  <div class="info">
+    <span class="name">Display Name</span>
+    <span class="hash">/path — short tagline</span>
+  </div>
+  <span class="arrow">→</span>
+</a>
+```
+
+**De-duplication rule:** a page should appear in the homepage card list at most once. If a sub-page (e.g. `pivotal-systems-business-plan`) is already linked from its parent page's section (e.g. `pivotal-systems.html`), do NOT also link it as a top-level card on the homepage. Verify by curling the live homepage and grepping for the path. When removing a card, delete the entire `<a>...</a>` block including the closing `</a>` tag.
+
+**Current homepage card taxonomy (as of 2026-06-02):**
+- `career.html` — Ventura vocation ideas
+- `pivotal-systems.html` — Pivotal Systems business hub (links to the business plan as a sub-page)
+- `wiki/login` — personal wiki
+- `ai-in-vet-hospitals/` — vet hospitals AI research
+- `financial-planning-ai-wiki/` — financial planning AI wiki
+- `business-opportunities/ai-consulting-workflow-automation/` — AI consulting workflow
+
+### Wiki index section structure
+
+The wiki hub (`/opt/data/hermes-pages/wiki/index.html`) groups pages into `<div class="section">` blocks. Each section has an `<h3>` heading and a `<ul>` of link items. Current sections (2026-06-02):
+
+| Section | Path prefix | Examples |
+|---------|-------------|----------|
+| Wiki | `/wiki/log` | Log |
+| Identity | `/wiki/entities/` | Gordon Rouse, KLA |
+| Decisions | `/wiki/concepts/` | Ventura Relocation |
+| Projects | `/wiki/projects/` | Ventura Renovation, Hermes Agent, Sidekick Studio |
+| Home Renovation | mix | Bathroom vanity lights, Recessed gimbal lights, plus project-style renovation research pages |
+| Hobbies | `/wiki/hobbies/` | Backcountry Fishing, Backpacking, Hiking, Fitness, Personal Style, London |
+
+When Gordon asks to "move" an item between sections, the move is purely a nav edit in `wiki/index.html` — the page file itself stays in its original directory and keeps its existing URL. E.g. moving "Alcove Bathtubs" from Projects to Home Renovation: edit the `<ul>` in the Projects section to remove the `<li>`, then insert the same `<li>` at the top of the Home Renovation `<ul>`. Keep link text and href unchanged.
 
 ### Personal utility list pages
 
@@ -435,13 +474,15 @@ These are session-proven failure patterns. When a normal push-and-wait doesn't w
 
 Symptoms: `git push` returns `To https://github.com/...`. `git log` shows the commit on `main`. Live URL returns old content across all retry attempts. GitHub API confirms the file has the new content.
 
-Root cause: Cloudflare Pages did not receive (or ignored) the GitHub webhook trigger.
+Root cause: **The `hermes-pages` Cloudflare Pages project is configured as Direct Upload, not Git Integration.** Git push to GitHub does NOT trigger a Cloudflare deploy. The GitHub repo is for source backup/version control only. **Always deploy with wrangler** after pushing.
 
 Recovery options (in order of feasibility):
-1. **wrangler force-deploy** — Requires Node 22+. Use `npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true`. This bypasses the GitHub webhook entirely.
+1. **wrangler force-deploy** — Requires Node 22+. Use `npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true`. This is the ONLY reliable deploy path; not just a fallback.
 2. **Isolated clean deploy** — If the worktree has unrelated dirty files, clone the committed state to a temp dir and deploy from there: `rm -rf /tmp/hermes-pages-deploy && git clone --no-local /opt/data/hermes-pages /tmp/hermes-pages-deploy && npx -y -p node@22 -p wrangler wrangler pages deploy /tmp/hermes-pages-deploy --project-name hermes-pages --commit-dirty=true`
-3. **Cloudflare Dashboard** — Trigger manually at dash.cloudflare.com → Pages → hermes-pages → Trigger deployment.
-4. **No recovery available** — If no Node 22+, no CF credentials, and no Dashboard access: the content is committed to GitHub and will eventually go live when CF processes the backlog. Tell Gordon.
+3. **Cloudflare Dashboard** — Trigger manually at dash.cloudflare.com → Pages → hermes-pages → (no retry button for Direct Upload; you must use the CLI or upload via the dashboard).
+4. **No recovery available** — If no Node 22+, no CF credentials, and no Dashboard access: the content is committed to GitHub but will NOT go live on its own. Tell Gordon.
+
+**How to confirm the project is Direct Upload:** `curl -X POST -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/hermes-pages/deployments/<dep-id>/retry"` returns `"You cannot retry a Direct Upload deployment. Retries are only possible for builds."`
 
 ### Pattern 2: Wrangler returns "Project not found"
 
