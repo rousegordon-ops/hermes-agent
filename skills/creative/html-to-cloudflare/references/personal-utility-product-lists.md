@@ -76,15 +76,20 @@ ELCO product pages (`elcolighting.com`) extract text and image URLs well via `we
   - `EL2688W` pull-down trim: ~$27.93–$33.15, image `EL2688W.jpg`.
   - `EL2695W` scoop/baffle wall wash: ~$19.99–$22.65, image `EL2695W.jpg`.
 - ELCO 3" Alpine trims are often *trim + housing + lamp* systems, not complete integrated LED fixtures. For artwork, state explicitly that CRI/CCT/beam spread depend on the selected MR16/GU10/PSA37 lamp. This is not a downside if Gordon wants beam-spread control by swapping bulbs.
-- Useful fields from ELCO/resellers: outside diameter typically `4 5/16"`; EL2622 wall-wash reflector has `45° adjustability, 359° rotation`; EL2688 pull-down has `30° adjustability, 358° rotation`; EL2620 slot aperture has `45° adjustability`.
+- ELCO integrated pull-down inserts (example: `3-round-integrated-led-adjustable-pull-down-insert`, SKUs `EL39730W`/`EL39727BZ`) are different from the MR16/GU10 trims: integrated 10.8W LED, 800 lm, 93+ CRI, 36° fixed beam, 65° tilt, 356° rotation, Triac/ELV dimming, damp rated, Energy Star/Title 24. For art lighting, call out the tradeoff: strong CRI and aiming range, but beam spread is fixed and not bulb-swappable. Direct ELCO image downloads may 403; `web_extract` can read specs/PDF text, and reseller mirrors like Cans & Fans / Sonic Electric / USA Light can provide usable product images and prices (`$97.35–$126` seen). Example local image filename: `gimbal-elco-el39730w-integrated-led-pull-down-insert.jpg`.
+- Useful fields from ELCO/resellers: outside diameter typically `4 5/16"` for Alpine trims; EL397 integrated insert outside diameter `4 3/8"`, max height `6 1/8"`; EL2622 wall-wash reflector has `45° adjustability, 359° rotation`; EL2688 pull-down has `30° adjustability, 358° rotation`; EL2620 slot aperture has `45° adjustability`.
 
 ## Page UI/legibility
 
 Gordon reported that on phone the association between product pictures and descriptions was not clear. Maintain strong card separation on mobile and desktop: high-contrast borders around each product card, generous vertical gaps between cards, and a clear border between the image and the description when stacked. Avoid subtle low-contrast separators for substantive product grouping.
 
-## Image verification
+## Image verification and multi-image cards
 
 Use vision analysis when available. If the first candidate is cropped, mostly blank, off-center, or not clearly the product, try another candidate before committing.
+
+When Gordon asks to **add a picture** to an existing card, preserve the existing product image unless he explicitly says replace. Add a multi-image field/render path (e.g. `images: [existing, new]`) and verify both image paths render/live. This correction came up on the FRIHULT card: replacing the product photo with an inspiration photo was wrong; the desired outcome was two pictures.
+
+For wide/lifestyle/inspiration images inside product cards, avoid cropping important context. Use `object-fit: contain` and `object-position: center center` for the added/lifestyle image if `cover` cuts off the side of the image. Keep card boundaries and image/detail separators high contrast.
 
 ## Deploy verification
 
