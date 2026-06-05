@@ -541,6 +541,75 @@ class TestGetTextAuxiliaryClient:
         assert mock_openai.call_args.kwargs["api_key"] == "sk-test"
 
 
+class TestAuxFallbackProvidersChain:
+    """When the configured aux provider is unavailable, fall back to the
+    top-level ``fallback_providers`` chain the primary uses."""
+
+    def test_compression_falls_back_to_minimax_when_codex_exhausted(self, monkeypatch):
+        """Codex exhausted (returns None) → MiniMax fallback wins via the chain."""
+        fake_minimax_client = MagicMock()
+        # First call: configured provider fails. Second call: minimax succeeds.
+        resolve_calls = []
+
+        def fake_resolve(provider, model=None, **kwargs):
+            resolve_calls.append((provider, model))
+            if provider == "codex":
+                return None, None
+            if provider == "minimax":
+                return fake_minimax_client, "MiniMax-M2.7"
+            return None, None
+
+        fake_config = {
+            "auxiliary": {
+                "compression": {"provider": "codex", "model": "gpt-5.4-mini"},
+            },
+            "fallback_providers": [
+                {"provider": "minimax", "model": "MiniMax-M2.7",
+                 "base_url": "https://api.minimax.io/anthropic"},
+            ],
+        }
+        with (
+            patch("agent.auxiliary_client.resolve_provider_client",
+                  side_effect=fake_resolve),
+            patch("hermes_cli.config.load_config", return_value=fake_config),
+        ):
+            client, model = get_text_auxiliary_client("compression")
+
+        assert client is fake_minimax_client
+        assert model == "MiniMax-M2.7"
+        # Configured provider was tried first, then the minimax fallback.
+        providers_tried = [p for p, _ in resolve_calls]
+        assert providers_tried[0] == "codex"
+        assert "minimax" in providers_tried[1:]
+
+    def test_task_opt_out_skips_fallback_chain(self, monkeypatch):
+        """auxiliary.<task>.allow_fallback=false keeps the old (None, None) behavior."""
+        fake_config = {
+            "auxiliary": {
+                "vision": {
+                    "provider": "gemini",
+                    "model": "gemini-3-flash-preview",
+                    "allow_fallback": False,
+                },
+            },
+            "fallback_providers": [
+                {"provider": "minimax", "model": "MiniMax-M2.7"},
+            ],
+        }
+        with (
+            patch("agent.auxiliary_client.resolve_provider_client",
+                  return_value=(None, None)) as mock_resolve,
+            patch("hermes_cli.config.load_config", return_value=fake_config),
+        ):
+            client, model = get_text_auxiliary_client("vision")
+
+        assert client is None
+        assert model is None
+        # Only the configured provider was attempted; chain never walked.
+        providers_tried = [c.args[0] for c in mock_resolve.call_args_list]
+        assert providers_tried == ["gemini"]
+
+
 class TestVisionClientFallback:
     """Vision client auto mode resolves known-good multimodal backends."""
 

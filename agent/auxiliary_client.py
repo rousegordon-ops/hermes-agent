@@ -2382,9 +2382,16 @@ def get_text_auxiliary_client(
 
     Callers may override the returned model via config.yaml
     (e.g. auxiliary.compression.model, auxiliary.web_extract.model).
+
+    When the configured aux provider is unavailable (e.g. its OAuth
+    token is rate-limited and the credential pool slot is marked
+    exhausted), and the task hasn't opted out via
+    ``auxiliary.<task>.allow_fallback: false``, walk the top-level
+    ``fallback_providers`` chain (the same one the primary uses) and
+    return the first provider that yields a usable client.
     """
     provider, model, base_url, api_key, api_mode = _resolve_task_provider_model(task or None)
-    return resolve_provider_client(
+    client, resolved_model = resolve_provider_client(
         provider,
         model=model,
         explicit_base_url=base_url,
@@ -2392,6 +2399,11 @@ def get_text_auxiliary_client(
         api_mode=api_mode,
         main_runtime=main_runtime,
     )
+    if client is not None and resolved_model:
+        return client, resolved_model
+    if not task:
+        return None, None
+    return _try_aux_fallback_chain(task, main_runtime=main_runtime, async_mode=False)
 
 
 def get_async_text_auxiliary_client(task: str = "", *, main_runtime: Optional[Dict[str, Any]] = None):
@@ -2399,10 +2411,12 @@ def get_async_text_auxiliary_client(task: str = "", *, main_runtime: Optional[Di
 
     For standard providers returns (AsyncOpenAI, model). For Codex returns
     (AsyncCodexAuxiliaryClient, model) which wraps the Responses API.
-    Returns (None, None) when no provider is available.
+    Returns (None, None) when no provider is available — including after
+    the ``fallback_providers`` chain is exhausted (see
+    ``get_text_auxiliary_client`` for the fallback semantics).
     """
     provider, model, base_url, api_key, api_mode = _resolve_task_provider_model(task or None)
-    return resolve_provider_client(
+    client, resolved_model = resolve_provider_client(
         provider,
         model=model,
         async_mode=True,
@@ -2411,6 +2425,83 @@ def get_async_text_auxiliary_client(task: str = "", *, main_runtime: Optional[Di
         api_mode=api_mode,
         main_runtime=main_runtime,
     )
+    if client is not None and resolved_model:
+        return client, resolved_model
+    if not task:
+        return None, None
+    return _try_aux_fallback_chain(task, main_runtime=main_runtime, async_mode=True)
+
+
+def _try_aux_fallback_chain(
+    task: str,
+    *,
+    main_runtime: Optional[Dict[str, Any]] = None,
+    async_mode: bool = False,
+) -> Tuple[Optional[Any], Optional[str]]:
+    """Walk the top-level ``fallback_providers`` chain for an aux task.
+
+    Mirrors the primary path's behavior: when the configured provider
+    can't produce a client (rate-limit cooldown, missing credentials,
+    transient auth failure), iterate the same ``fallback_providers``
+    list defined in ``config.yaml`` and return the first one whose
+    ``resolve_provider_client`` call succeeds.
+
+    Per-task opt-out: ``auxiliary.<task>.allow_fallback: false`` skips
+    the chain entirely. Useful for tasks where any non-default provider
+    would be wrong (e.g. vision quality on a text-only fallback).
+    """
+    task_config = _get_auxiliary_task_config(task) if task else {}
+    if task_config.get("allow_fallback") is False:
+        return None, None
+
+    try:
+        from hermes_cli.config import load_config
+        config = load_config() or {}
+    except ImportError:
+        return None, None
+    if not isinstance(config, dict):
+        return None, None
+
+    fb_list = config.get("fallback_providers")
+    if isinstance(fb_list, dict):
+        fb_list = [fb_list]
+    if not isinstance(fb_list, list) or not fb_list:
+        return None, None
+
+    for fb in fb_list:
+        if not isinstance(fb, dict):
+            continue
+        fb_provider = str(fb.get("provider", "")).strip()
+        if not fb_provider:
+            continue
+        fb_model = str(fb.get("model", "")).strip() or None
+        fb_base_url = str(fb.get("base_url", "")).strip() or None
+        fb_api_key = str(fb.get("api_key", "")).strip() or None
+
+        try:
+            client, resolved_model = resolve_provider_client(
+                fb_provider,
+                model=fb_model,
+                async_mode=async_mode,
+                explicit_base_url=fb_base_url,
+                explicit_api_key=fb_api_key,
+                main_runtime=main_runtime,
+            )
+        except Exception as exc:
+            logger.debug(
+                "Auxiliary fallback %s for task '%s' raised: %s",
+                fb_provider, task or "(unspecified)", exc,
+            )
+            continue
+        if client is not None and resolved_model:
+            logger.warning(
+                "Auxiliary task '%s': configured provider unavailable; "
+                "using fallback %s/%s",
+                task or "(unspecified)", fb_provider, resolved_model,
+            )
+            return client, resolved_model
+
+    return None, None
 
 
 _VISION_AUTO_PROVIDER_ORDER = (
