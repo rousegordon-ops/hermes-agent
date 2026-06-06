@@ -409,6 +409,10 @@ See `references/wiki-content-strategy.md` for the full guide. Key rules:
 
 The index is an HTML file (`wiki/index.html`), not markdown. When adding a new page, insert a link in the appropriate section using the same pattern as existing links. Don't create a summary or description — just a link.
 
+### Hobbies wiki pages
+
+For new pages under `/wiki/hobbies/`, follow `references/hobbies-wiki-pages.md`: hand-edit HTML directly, include the standard wiki auth guard, add an extensionless Hobbies link in `wiki/index.html`, use high-contrast styling, download/credit local images under `/wiki/assets/`, create a custom local SVG when exact method illustrations are unavailable, then commit, Wrangler deploy, and verify the page, index link, and asset URLs.
+
 ### Nav bar organization
 
 **User preference: hide the top nav bar.** Set `.topbar { display: none; }` in the CSS. Gordon preferred a clean page without it.
