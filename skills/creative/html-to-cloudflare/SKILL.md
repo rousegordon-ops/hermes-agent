@@ -413,6 +413,10 @@ The index is an HTML file (`wiki/index.html`), not markdown. When adding a new p
 
 For new pages under `/wiki/hobbies/`, follow `references/hobbies-wiki-pages.md`: hand-edit HTML directly, include the standard wiki auth guard, add an extensionless Hobbies link in `wiki/index.html`, use high-contrast styling, download/credit local images under `/wiki/assets/`, create a custom local SVG when exact method illustrations are unavailable, then commit, Wrangler deploy, and verify the page, index link, and asset URLs.
 
+### Home renovation wiki pages
+
+For renovation research pages (solar, fixtures, rough-in planning, product research), follow `references/home-renovation-wiki-pages.md`: edit hand-written HTML under `/opt/data/hermes-pages`, place discoverability links in the **Home Renovation** section of `wiki/index.html`, use local SVG/assets where useful, preserve auth/public behavior intentionally, deploy via Wrangler Direct Upload, and verify canonical `hermes-pages-d55.pages.dev` URLs. For solar/open-wall electrical planning, keep practical rough-in advice prominent: oversized empty conduit, reserved battery/inverter wall space, service/panel capacity, critical-loads subpanel, communications conduit, and pre-drywall photos/labels.
+
 ### Nav bar organization
 
 **User preference: hide the top nav bar.** Set `.topbar { display: none; }` in the CSS. Gordon preferred a clean page without it.
