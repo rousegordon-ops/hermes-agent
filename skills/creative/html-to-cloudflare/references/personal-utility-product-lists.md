@@ -63,9 +63,29 @@ This page is for recessed gimbal lights to illuminate art on walls. For each new
 
 Add objects to `window.__GIMBALS` with fields: `name`, `url`, `img`, `price`, `dimensions`, `finish`, `cri`, `adjustability`, `beam`, `lamp`, `specs`, and `artFit` when available. Save images locally under `/opt/data/hermes-pages/assets/`, visually verify clear product images when possible, commit, deploy, and verify the canonical URL contains the new product and image filename.
 
+## Showerheads command semantics
+
+Primary current command:
+- `add showerhead <URL or product name>`
+
+Canonical source and URL:
+- Source: `/opt/data/hermes-pages/showerheads.html`
+- URL: `https://hermes-pages-d55.pages.dev/showerheads`
+
+This page is for showerheads being considered for the Ventura house. If Gordon provides a product name instead of a URL, search the web for the product, choose the most likely official/retailer URL, and keep that as the card link. For each new product, prioritize metadata that matters for showerheads:
+- Flow rate / GPM
+- Spray patterns and pressure feel
+- Fixed, handheld, rain, dual, filtered, or combo type
+- Finish and dimensions / face diameter
+- Installation notes and compatibility with standard shower arms/valves
+- Anti-clog / easy-clean nozzles, filter cartridges, pause controls, hose length where relevant
+- Certifications such as WaterSense, ASME/CSA, CEC/California compliance when available
+
+Add objects to `window.__SHOWERHEADS` with fields: `name`, `url`, `img`, `price`, `type`, `flow`, `spray`, `dimensions`, `finish`, `install`, `certifications`, `specs`, and `fitNote` when available. Save images locally under `/opt/data/hermes-pages/assets/`, visually verify clear product images when possible, commit, deploy, and verify the canonical URL contains the new product and image filename.
+
 ## Multiple URLs in one command
 
-If Gordon says `add light <URL> <URL>` or `add gimbal <URL> <URL>` (or more URLs), do **not** spawn parallel agents against the shared HTML file. Fetch metadata/images for each URL serially, then patch the appropriate JS data array once, commit once, deploy once, and verify every new item/image on the canonical page.
+If Gordon says `add light <URL> <URL>`, `add gimbal <URL> <URL>`, or `add showerhead <URL/name> <URL/name>` (or more items), do **not** spawn parallel agents against the shared HTML file. Fetch metadata/images for each item serially, then patch the appropriate JS data array once, commit once, deploy once, and verify every new item/image on the canonical page.
 
 ## Recessed gimbal provider notes
 
