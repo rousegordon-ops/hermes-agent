@@ -238,7 +238,7 @@ When Gordon asks to "move" an item between sections, the move is purely a nav ed
 Gordon uses short commands to maintain lightweight product-list pages on `hermes-pages`:
 - `add light <URL>` → Bathroom Vanity Lights at `/opt/data/hermes-pages/bathroom-vanity-lights.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanity-lights`)
 - `add gimbal <URL>` → Recessed Gimbal Lights at `/opt/data/hermes-pages/recessed-gimbal-lights.html` (`https://hermes-pages-d55.pages.dev/recessed-gimbal-lights`)
-- `add showerhead <URL or product name>` → Showerheads at `/opt/data/hermes-pages/showerheads.html` (`https://hermes-pages-d55.pages.dev/showerheads`)
+- `add showerhead <URL or product name>` → **Rain Shower Heads** at `/opt/data/hermes-pages/showerheads.html` (`https://hermes-pages-d55.pages.dev/showerheads`)
 
 For each item, save a product image locally under `/opt/data/hermes-pages/assets/`, keep the original/specified product URL as the card link, add useful metadata when available, commit, deploy with Wrangler, and verify the canonical URL contains the new item and image. On the page itself, use the exact preferred command phrase for that list (e.g. `add light <URL>`, `add showerhead <URL or product name>`). For provider quirks and list-specific metadata fields, see `references/personal-utility-product-lists.md`.
 
@@ -255,7 +255,7 @@ Session notes for this utility workflow are in `references/personal-utility-prod
 Pitfalls:
 - Do **not** protect root-level utility pages like `/bathroom-vanities` with the wiki login snippet. The wiki login currently redirects already-authenticated users to `/wiki/`, and its auth cookie path is `/wiki/`; a root page using `wiki_auth` will appear broken or bounce users back to the wiki/homepage. Keep root utility pages public unless Gordon explicitly asks for a proper root-scoped auth flow.
 - If Gordon says a published link “doesn't work,” do not stop at “HTTP 200” verification. Check redirect/login snippets, index/hub links, and whether the user-visible click path lands on the intended page. Fix the page/link chain before replying.
-- Cloudflare auto-deploy has repeatedly lagged for `/bathroom-vanities`; after push, verify the live page. If stale after retries, deploy an isolated clone of the committed state rather than the dirty worktree.
+- Cloudflare auto-deploy has repeatedly lagged or not run for product-list pages; because `hermes-pages` uses Direct Upload, run Wrangler after the git push instead of waiting through repeated stale checks. Prefer a direct `terminal` call for the Wrangler deploy (`npx -y -p node@22 -p wrangler ...`) rather than wrapping a long deploy/retry loop inside `execute_code`, which can hit the tool timeout and obscure partial progress.
 - On mobile, product-list cards need obvious association between image and details. Use strong high-contrast card boundaries (e.g. blue border), generous vertical gaps, and a clear separator between image and text; do not rely on subtle dark borders only.
 
 ## Design preferences (from Gordon's feedback)

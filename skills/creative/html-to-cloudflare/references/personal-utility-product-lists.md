@@ -68,11 +68,14 @@ Add objects to `window.__GIMBALS` with fields: `name`, `url`, `img`, `price`, `d
 Primary current command:
 - `add showerhead <URL or product name>`
 
-Canonical source and URL:
+Canonical source, URL, and display title:
 - Source: `/opt/data/hermes-pages/showerheads.html`
 - URL: `https://hermes-pages-d55.pages.dev/showerheads`
+- Display title/H1/wiki link text: **Rain Shower Heads**
 
-This page is for showerheads being considered for the Ventura house. If Gordon provides a product name instead of a URL, search the web for the product, choose the most likely official/retailer URL, and keep that as the card link. For each new product, prioritize metadata that matters for showerheads:
+When Gordon asks to rename a product-list page, update all user-visible title surfaces together: `<title>`, page `<h1>`, nearby intro copy if it repeats the old title, and the `wiki/index.html` link text. Keep the command phrase stable unless he explicitly renames the command.
+
+This page is for rain shower heads being considered for the Ventura house. If Gordon provides a product name instead of a URL, search the web for the product, choose the most likely official/retailer URL, and keep that as the card link. For each new product, prioritize metadata that matters for showerheads:
 - Flow rate / GPM
 - Spray patterns and pressure feel
 - Fixed, handheld, rain, dual, filtered, or combo type
@@ -124,12 +127,13 @@ For wide/lifestyle/inspiration images inside product cards, avoid cropping impor
 
 ## Deploy verification
 
-Cloudflare Pages auto-deploy has lagged repeatedly for this page. After push, verify the canonical URL contains the new item text and local image filename. If the live page is stale after 60+ seconds of retries, a forced deploy is needed.
+Cloudflare Pages auto-deploy has lagged or not run for product-list pages. The project uses Direct Upload, so after committing/pushing, run Wrangler directly rather than waiting through long retry loops. Use a `terminal` call for the deploy command; avoid wrapping Wrangler plus polling inside `execute_code`, which can time out and hide where the deploy stopped.
 
-**If Node 22+ is available** (wrangler requires it — system node may be older):
 ```bash
+cd /opt/data/hermes-pages
 npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true
 ```
+
 If the worktree has unrelated dirty files, deploy from an isolated clean clone:
 ```bash
 rm -rf /tmp/hermes-pages-vanity-lights-deploy
