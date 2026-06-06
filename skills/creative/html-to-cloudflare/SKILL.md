@@ -235,9 +235,12 @@ When Gordon asks to "move" an item between sections, the move is purely a nav ed
 
 ### Personal utility list pages
 
-Gordon may use short commands to maintain lightweight list pages on `hermes-pages`. Current example: `add light <URL>` means add the product to the Bathroom Vanity Lights page at `/opt/data/hermes-pages/bathroom-vanity-lights.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanity-lights`) with a product image saved locally under `/opt/data/hermes-pages/assets/`, a product link, and useful metadata when available. On the page itself, phrase the user-facing instruction with the preferred command: `add light <URL>` and use the title “Bathroom Vanity Lights” (not “Bathroom Vanities”). For each new URL:
+Gordon uses short commands to maintain lightweight product-list pages on `hermes-pages`:
+- `add light <URL>` → Bathroom Vanity Lights at `/opt/data/hermes-pages/bathroom-vanity-lights.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanity-lights`)
+- `add gimbal <URL>` → Recessed Gimbal Lights at `/opt/data/hermes-pages/recessed-gimbal-lights.html` (`https://hermes-pages-d55.pages.dev/recessed-gimbal-lights`)
+- `add showerhead <URL or product name>` → Showerheads at `/opt/data/hermes-pages/showerheads.html` (`https://hermes-pages-d55.pages.dev/showerheads`)
 
-For details and past provider quirks for this page, see `references/personal-utility-product-lists.md`.
+For each item, save a product image locally under `/opt/data/hermes-pages/assets/`, keep the original/specified product URL as the card link, add useful metadata when available, commit, deploy with Wrangler, and verify the canonical URL contains the new item and image. On the page itself, use the exact preferred command phrase for that list (e.g. `add light <URL>`, `add showerhead <URL or product name>`). For provider quirks and list-specific metadata fields, see `references/personal-utility-product-lists.md`.
 
 For each new URL:
 1. Fetch/inspect the product page for title, price/specs, and candidate images (Open Graph/product image first; otherwise choose a clear product photo).
