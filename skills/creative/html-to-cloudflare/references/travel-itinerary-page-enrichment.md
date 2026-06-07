@@ -4,7 +4,11 @@ Use this when Gordon asks to make hobby/travel itinerary wiki pages more interes
 
 ## Pattern that worked
 
-- Keep the existing hand-authored HTML page and wiki auth guard; enrich in place rather than creating a separate app.
+- Keep the existing hand-authored HTML page and enrich in place rather than creating a separate app.
+- **Default public:** travel itinerary pages should be public unless Gordon specifically requests private/auth-gated access.
+  - Do not add a wiki auth guard to new itinerary pages by default.
+  - If enriching an existing itinerary page that has `wiki_auth`, remove the auth guard unless Gordon explicitly says to keep it private.
+  - Because the page is public by default, remove/redact booking confirmation numbers, reservation IDs, tokens, or other sensitive references from public text while preserving useful logistics.
 - Add locally saved public-domain/Commons-style images under a topic folder such as:
   - `/opt/data/hermes-pages/wiki/assets/uk-vacation-july-26/`
 - Prefer local assets over hotlinks so pages remain stable and Cloudflare serves everything from the same deploy.
@@ -15,7 +19,8 @@ Use this when Gordon asks to make hobby/travel itinerary wiki pages more interes
   - day-by-day cards/timeline
   - playful prompts/trip games
   - local illustrative SVG route map for road trips
-- Preserve substantive itinerary details and booking info already present in the page; do not expose secrets/tokens or paste sensitive values into summaries.
+- Preserve substantive itinerary details already present in the page.
+- For public pages, remove/redact sensitive booking IDs, reservation references, confirmation numbers, payment references, tokens, and credentials from user-visible HTML. Keep only non-sensitive logistics such as flight numbers, lodging names, addresses, check-in/check-out times, and whether a booking/payment is confirmed.
 
 ## Wikimedia asset download quirks
 
@@ -28,7 +33,8 @@ Use this when Gordon asks to make hobby/travel itinerary wiki pages more interes
 ## Verification checklist
 
 Before commit:
-- Assert each page still contains `wiki_auth` and `/wiki/login?dst=`.
+- Assert public/default pages do **not** contain `wiki_auth` or `/wiki/login?dst=`; if Gordon explicitly requested a private page, assert the auth guard is present instead.
+- Assert public/default pages do not expose booking/reservation confirmation references or other sensitive identifiers.
 - Assert new section markers exist (`Trip mood board`, `Route at a glance`, etc.).
 - Assert each local asset exists and has nonzero/non-trivial size.
 - Run `git diff --check`.

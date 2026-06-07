@@ -5,9 +5,10 @@ Use this when Gordon asks for a new page under `wiki/hobbies/`, especially a pra
 ## Proven workflow from lemon tree cuttings page
 
 - Create hand-edited HTML directly under `/opt/data/hermes-pages/wiki/hobbies/<slug>.html`; do not use the retired markdown pipeline.
-- Include the standard wiki auth guard:
-  - check `document.cookie.match(/wiki_auth=([^;]+)/)`
-  - redirect to `/wiki/login?dst=` + `encodeURIComponent(window.location.pathname)`
+- **Default public:** new and updated hobby/travel pages should be publicly accessible unless Gordon specifically requests private/auth-gated access.
+  - Do **not** add the wiki auth guard by default.
+  - If an existing page has the `wiki_auth` script and Gordon asks to publish/share/make it public, remove that script and verify `wiki_auth` and `/wiki/login?dst=` are absent.
+  - Only add or preserve the auth guard when Gordon explicitly asks for the page to stay private/protected.
 - Add a link in `/opt/data/hermes-pages/wiki/index.html` under the existing **Hobbies** section. Use extensionless URLs, e.g. `/wiki/hobbies/lemon-tree-cuttings`.
 - Use high-contrast dark styling consistent with existing wiki pages; avoid dim gray for substantive text.
 - For practical/how-to pages, a richer page layout is OK: hero image, quick recipe/callout, step cards, supplies checklist, sources, and image credits.
@@ -20,7 +21,8 @@ Use this when Gordon asks for a new page under `wiki/hobbies/`, especially a pra
 ## Verification checklist
 
 Before commit:
-- Assert page contains expected `<h1>`, wiki auth guard, local asset paths, and key user-provided content.
+- Assert page contains expected `<h1>`, local asset paths, and key user-provided content.
+- Assert public/default pages do **not** contain `wiki_auth` or `/wiki/login?dst=`; if Gordon explicitly requested a private page, assert the auth guard is present instead.
 - Assert the wiki index contains the new extensionless link.
 - Assert each local asset exists and has nonzero size.
 - Run `git diff --check`.

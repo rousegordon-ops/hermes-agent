@@ -12,8 +12,10 @@ Use this reference when Gordon asks to add or update house-renovation research i
 
 ## Auth/public handling
 
-- Do not assume every `/wiki/projects/...` page should be public. Match nearby pages unless Gordon explicitly asks for public access.
-- If a page should be public, remove the client-side `wiki_auth` login redirect script and verify both locally and live that `wiki_auth`/`/wiki/login` are absent.
+- **Default public:** pages Gordon asks you to create or update should be publicly accessible unless he specifically requests private/auth-gated access.
+- Do not add the client-side `wiki_auth` login redirect script by default, even for files under `/wiki/projects/...`.
+- If an existing page has the auth script and Gordon asks to publish/share/make it public, remove the client-side `wiki_auth` login redirect script and verify both locally and live that `wiki_auth`/`/wiki/login` are absent.
+- Only add or preserve auth when Gordon explicitly asks for a private/protected page.
 - Root-level utility/product pages should remain public unless Gordon explicitly requests a proper root-scoped auth flow.
 
 ## Home-renovation page workflow

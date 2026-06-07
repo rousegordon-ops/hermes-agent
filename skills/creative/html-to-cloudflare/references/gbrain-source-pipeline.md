@@ -8,7 +8,7 @@ Use this when regenerating or building a `hermes-pages` HTML page from a **gbrai
 
 | Source | Location | Format | Examples |
 |--------|----------|--------|----------|
-| Static HTML wiki | `/opt/data/hermes-pages/wiki/` | hand-edited `.html` (auth-gated, `wiki_auth=GW2026` cookie) | `/wiki/entities/gordon-rouse`, `/wiki/hobbies/hiking`, all 16 wiki pages |
+| Static HTML wiki | `/opt/data/hermes-pages/wiki/` | hand-edited `.html` (new/updated content pages are public by default unless Gordon explicitly asks for auth; some legacy/private pages still use `wiki_auth=GW2026`) | `/wiki/entities/gordon-rouse`, `/wiki/hobbies/hiking`, `/wiki/projects/...` |
 | gbrain content repo | `/opt/data/gbrain-content/` (git) | `.md` with frontmatter + `[[wikilinks]]` | source-of-truth for the brain content |
 | gbrain runtime DB | `/opt/data/.gbrain/brain.pglite` (PGLite) | rows keyed by slug, queryable via `gbrain` CLI | what `gbrain export` reads from |
 

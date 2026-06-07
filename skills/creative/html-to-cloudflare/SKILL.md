@@ -97,6 +97,8 @@ GIT_TERMINAL_PROMPT=0 git push origin main
 - The hub index lives at `/opt/data/hermes-pages/wiki/index.html` (not a separate repo subdirectory)
 - Git push from `/opt/data/hermes-pages` directly — no intermediate repo clone needed
 - The wiki lives at `/opt/data/hermes-pages/wiki/` — write HTML files there, push, deploy auto-runs
+- **Default public:** any page Gordon asks you to create, update, publish, or share should be public unless he specifically asks for private/auth-gated access. Do not add or preserve `wiki_auth` on pages by default. Existing unrelated private pages should be left alone.
+- When making a page public, remove/redact booking numbers, reservation IDs, confirmation codes, tokens, credentials, and other sensitive identifiers from user-visible HTML while preserving useful non-sensitive logistics.
 
 ## Key repos and URLs
 
@@ -322,7 +324,7 @@ Pattern:
 - Public hub: `/career` backed by `/opt/data/hermes-pages/career.html`.
 - Public pages: `/career-opportunities`, `/business-opportunities`, and `/business-opportunities/...` drilldowns.
 - Old protected wiki career URLs should redirect to the public equivalents, e.g. `/wiki/career-opportunities` → `/career-opportunities` and `/wiki/business-opportunities/...` → `/business-opportunities/...`.
-- Do **not** remove auth from unrelated wiki pages. Verify a non-career wiki page still contains `wiki_auth` or redirects to `/wiki/login`.
+- Do **not** change unrelated existing private pages unless they are part of the request. For new or updated pages, default to public unless Gordon specifically asks for private/auth-gated access.
 - Update scheduled jobs that maintain this content to write to the public `/opt/data/hermes-pages/...` paths, not `/wiki/...` copies.
 
 **3. Push to hermes-pages:**
@@ -339,7 +341,7 @@ Live in ~30 seconds.
 |------|-----|--------------|---------|
 | `index.html` | `/wiki/` | ✅ Yes | Hub page — list of wiki pages, auth check on load |
 | `login.html` | `/wiki/login` | ❌ No | Login form — email + password |
-| `*.html` | `/wiki/<path>` | ✅ Yes | Content pages — inline auth check |
+| `*.html` | `/wiki/<path>` | ❌ Default public; ✅ only when explicitly requested | Content pages — hand-authored pages, optionally protected with inline auth check when Gordon asks |
 
 **Credentials / password maintenance:**
 - Email: Gordon's Gmail address from user profile/memory.
@@ -413,9 +415,9 @@ The index is an HTML file (`wiki/index.html`), not markdown. When adding a new p
 
 ### Hobbies wiki pages
 
-For new pages under `/wiki/hobbies/`, follow `references/hobbies-wiki-pages.md`: hand-edit HTML directly, include the standard wiki auth guard, add an extensionless Hobbies link in `wiki/index.html`, use high-contrast styling, download/credit local images under `/wiki/assets/`, create a custom local SVG when exact method illustrations are unavailable, then commit, Wrangler deploy, and verify the page, index link, and asset URLs.
+For new pages under `/wiki/hobbies/`, follow `references/hobbies-wiki-pages.md`: hand-edit HTML directly, keep the page public by default unless Gordon explicitly asks for private/auth-gated access, add an extensionless Hobbies link in `wiki/index.html`, use high-contrast styling, download/credit local images under `/wiki/assets/`, create a custom local SVG when exact method illustrations are unavailable, then commit, Wrangler deploy, and verify the page, index link, and asset URLs.
 
-For enriching travel itinerary pages, also follow `references/travel-itinerary-page-enrichment.md`: use locally saved Commons/public images, hero sections, mood-board grids, day cards/timelines, playful prompts, and route SVGs; handle Wikimedia `Special:FilePath` downloads with exact filenames, URL encoding, retry/backoff for 429s, and live asset verification.
+For enriching travel itinerary pages, also follow `references/travel-itinerary-page-enrichment.md`: use locally saved Commons/public images, hero sections, mood-board grids, day cards/timelines, playful prompts, and route SVGs; keep itinerary pages public by default, remove existing wiki auth guards unless Gordon requested privacy, handle Wikimedia `Special:FilePath` downloads with exact filenames, URL encoding, retry/backoff for 429s, and live asset verification.
 
 ### Home renovation wiki pages
 
