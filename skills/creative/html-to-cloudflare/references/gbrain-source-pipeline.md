@@ -51,6 +51,29 @@ gbrain get <slug>
 
 The `gbrain sync` command is incremental — it only ingests new/changed files. Use `--watch` for a continuous loop or `--install-cron` for a persistent daemon.
 
+## Organic Hermes → gbrain capture
+
+Gordon's Railway instance has a user-installed Hermes memory provider at:
+
+```
+/opt/data/plugins/gbrain/
+```
+
+It is enabled with:
+
+```yaml
+memory:
+  provider: gbrain
+```
+
+The provider passively appends completed primary-agent turns to markdown under `/opt/data/gbrain-content/sessions/`, commits the changed markdown locally, then runs:
+
+```bash
+gbrain sync --repo /opt/data/gbrain-content --no-embed --no-pull --yes
+```
+
+This is what makes gbrain organically accumulate inspectable knowledge without manual imports. Config changes require a fresh agent instance/restart before the gateway uses the provider for future turns. To smoke-test without a live model call, load `plugins.memory.load_memory_provider('gbrain')` with `HERMES_HOME=/opt/data`, call `initialize(...)`, then `sync_turn(...)`, and verify `gbrain list` includes `sessions/YYYY-MM`.
+
 ## Rendering gbrain → hermes-memories.html
 
 The canonical generator lives at:
