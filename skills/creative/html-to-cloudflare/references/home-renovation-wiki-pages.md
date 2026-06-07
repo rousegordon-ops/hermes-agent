@@ -25,6 +25,7 @@ Use this reference when Gordon asks to add or update house-renovation research i
    - Message `content` may itself be JSON with `text`, `images`, and `pdfs`. Parse it before summarizing.
    - Embedded `data:image/...;base64,...` images can be decoded and saved as local assets under `/opt/data/hermes-pages/wiki/assets/<topic>/`; use descriptive filenames and verify they load live.
 3. Create or patch hand-written HTML directly under `/opt/data/hermes-pages/wiki/...`.
+   - For renovation pages intended to be shared with contractors/installers, write the entire page in respectful peer-to-peer contractor-facing language. Do not add sections titled “Installer-facing wording”, “Installer-facing summary”, or similar — the whole page is already installer-facing. Frame items as preferences, working assumptions, and discussion points to review with the contractor, not as orders or implications that the contractor needs correction.
 4. Add a simple `<li><a href="...">Title</a></li>` in the appropriate `wiki/index.html` section. No summaries/descriptions in the hub list.
 5. If the page needs illustrations, prefer local self-contained SVGs under `/opt/data/hermes-pages/wiki/assets/` unless a licensed/downloaded image is necessary.
 6. Commit only relevant files from `/opt/data/hermes-pages`, push with `GIT_TERMINAL_PROMPT=0`, then deploy via Wrangler Direct Upload:
