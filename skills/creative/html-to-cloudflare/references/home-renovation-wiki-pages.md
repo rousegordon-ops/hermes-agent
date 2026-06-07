@@ -19,10 +19,15 @@ Use this reference when Gordon asks to add or update house-renovation research i
 ## Home-renovation page workflow
 
 1. Read the current target page and `wiki/index.html` before editing.
-2. Create or patch hand-written HTML directly under `/opt/data/hermes-pages/wiki/...`.
-3. Add a simple `<li><a href="...">Title</a></li>` in the appropriate `wiki/index.html` section. No summaries/descriptions in the hub list.
-4. If the page needs illustrations, prefer local self-contained SVGs under `/opt/data/hermes-pages/wiki/assets/` unless a licensed/downloaded image is necessary.
-5. Commit only relevant files from `/opt/data/hermes-pages`, push with `GIT_TERMINAL_PROMPT=0`, then deploy via Wrangler Direct Upload:
+2. If Gordon provides a Sidekick Studio share URL, fetch the share JSON directly rather than relying on browser rendering:
+   - Page HTML fetch may work, but the useful data is usually at `https://sidekickstudio.net/<app>/share/<token>/messages`.
+   - The `#msg-N` fragment is not sent over HTTP; use it only to identify the message index in the returned `messages` array.
+   - Message `content` may itself be JSON with `text`, `images`, and `pdfs`. Parse it before summarizing.
+   - Embedded `data:image/...;base64,...` images can be decoded and saved as local assets under `/opt/data/hermes-pages/wiki/assets/<topic>/`; use descriptive filenames and verify they load live.
+3. Create or patch hand-written HTML directly under `/opt/data/hermes-pages/wiki/...`.
+4. Add a simple `<li><a href="...">Title</a></li>` in the appropriate `wiki/index.html` section. No summaries/descriptions in the hub list.
+5. If the page needs illustrations, prefer local self-contained SVGs under `/opt/data/hermes-pages/wiki/assets/` unless a licensed/downloaded image is necessary.
+6. Commit only relevant files from `/opt/data/hermes-pages`, push with `GIT_TERMINAL_PROMPT=0`, then deploy via Wrangler Direct Upload:
    ```bash
    npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true
    ```
