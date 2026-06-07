@@ -133,7 +133,9 @@ For LLM-backed static apps, especially apps that call a Cloudflare Pages Functio
 
 ## Generated compendium pages (gbrain → HTML)
 
-`/opt/data/hermes-pages/hermes-memories.html` is a single-page HTML compendium of Gordon's **gbrain** knowledge base. It is NOT generated from the static HTML wiki at `/opt/data/hermes-pages/wiki/` — the eyebrow div names the gbrain runtime DB. To regenerate it from current gbrain content:
+`/opt/data/hermes-pages/hermes-memories.html` is a single-page HTML compendium of Gordon's **gbrain** knowledge base. It is NOT generated from the static HTML wiki at `/opt/data/hermes-pages/wiki/` — the eyebrow div names the gbrain runtime DB. If Gordon asks whether Hermes Memories is working or says it looks like gibberish, lead with the direct diagnostic: compare `gbrain export` output to the rendered page sections. If they match, the renderer is accurate and gbrain content/population is the issue; don't start by explaining the static wiki separation. See `references/gbrain-source-pipeline.md` for the exact diagnostic and organic-capture wiring.
+
+To regenerate it from current gbrain content:
 
 ```bash
 python3 /opt/data/skills/creative/html-to-cloudflare/scripts/gbrain-to-hermes-memories.py
@@ -416,6 +418,8 @@ For new pages under `/wiki/hobbies/`, follow `references/hobbies-wiki-pages.md`:
 ### Home renovation wiki pages
 
 For renovation research pages (solar, fixtures, flooring, fixtures, rough-in planning, product research), follow `references/home-renovation-wiki-pages.md`: edit hand-written HTML under `/opt/data/hermes-pages`, place discoverability links in the **Home Renovation** section of `wiki/index.html`, use local SVG/assets where useful, preserve auth/public behavior intentionally, deploy via Wrangler Direct Upload, and verify canonical `hermes-pages-d55.pages.dev` URLs. If the source is a Sidekick Studio share URL, fetch the JSON message payload directly from `/share/<token>/messages` (ignore the `#msg-N` fragment for HTTP; use it only to identify the relevant message), summarize the discussion into durable guidance, and save any useful embedded `data:image/...;base64,...` images as local assets under `/wiki/assets/<topic>/`. See `references/home-renovation-wiki-pages.md` for the exact pattern.
+
+For repo-wide markdown audits in `/opt/data/hermes-pages`, follow `references/hermes-pages-markdown-review.md`. Key: markdown in `gordons-llm-wiki/` is an archived prototype, not active wiki source; update stale docs and pointer files, then commit, Wrangler deploy, and verify live `.md` URLs because Cloudflare serves them.
 
 For solar/open-wall electrical planning, keep construction-phase advice on a dedicated planning subpage and emphasize only work that is costly/ugly after drywall: oversized empty conduit, hidden pathways to remote battery locations, gateway/load-management space, service/panel capacity, communications conduit, labeled large-load circuits, and pre-drywall photos/labels. If Gordon says the long-term target is whole-home backup with smart load management, avoid prematurely forcing a critical-loads subpanel or vendor-specific battery architecture.
 

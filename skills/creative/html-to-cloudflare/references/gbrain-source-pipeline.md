@@ -51,6 +51,27 @@ gbrain get <slug>
 
 The `gbrain sync` command is incremental — it only ingests new/changed files. Use `--watch` for a continuous loop or `--install-cron` for a persistent daemon.
 
+## Diagnosing whether Hermes Memories or gbrain is wrong
+
+When Gordon says `hermes-memories.html` looks repetitive/gibberish or asks whether Hermes Memories is working, do not detour into the static wiki unless he explicitly asks about it. Answer the binary first:
+
+1. Export gbrain with the correct environment:
+   ```bash
+   export PATH=/opt/data/.bun/bin:$PATH
+   export HOME=/opt/data
+   TMP=$(mktemp -d)
+   gbrain export --dir "$TMP"
+   ```
+2. Count exported markdown files and compare with rendered sections in `/opt/data/hermes-pages/hermes-memories.html` (`<section class="page" ...>`, not `<article>` or `.page-section`).
+3. If counts and previews match, Hermes Memories is rendering accurately and the problem is gbrain content quality/population.
+4. If counts/previews differ, fix the generator before blaming gbrain.
+5. Check organic capture wiring:
+   - `memory.provider` should be `gbrain` in `/opt/data/config.yaml`.
+   - `/opt/data/plugins/gbrain/` should exist.
+   - `gbrain sources list` and `gbrain list -n 50` should include `sessions/YYYY-MM` after a completed turn or provider smoke test.
+
+Avoid saying “the wiki pages are separate” as the first response when Gordon’s intent is inspecting gbrain. That framing confused the issue; lead with “Hermes Memories is/is not an accurate render of current gbrain export.”
+
 ## Organic Hermes → gbrain capture
 
 Gordon's Railway instance has a user-installed Hermes memory provider at:
@@ -73,6 +94,8 @@ gbrain sync --repo /opt/data/gbrain-content --no-embed --no-pull --yes
 ```
 
 This is what makes gbrain organically accumulate inspectable knowledge without manual imports. Config changes require a fresh agent instance/restart before the gateway uses the provider for future turns. To smoke-test without a live model call, load `plugins.memory.load_memory_provider('gbrain')` with `HERMES_HOME=/opt/data`, call `initialize(...)`, then `sync_turn(...)`, and verify `gbrain list` includes `sessions/YYYY-MM`.
+
+Important implementation detail: `gbrain sync` advances by git commits in `/opt/data/gbrain-content`; writing markdown files alone is not enough. The provider commits changed `sessions/` or `memory-writes/` files locally before running sync. If a future smoke test writes a markdown file but `gbrain list` does not change, check git status/log in `/opt/data/gbrain-content` first.
 
 ## Rendering gbrain → hermes-memories.html
 

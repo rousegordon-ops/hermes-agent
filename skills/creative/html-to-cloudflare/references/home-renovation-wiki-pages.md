@@ -28,6 +28,9 @@ Use this reference when Gordon asks to add or update house-renovation research i
    - For renovation pages intended to be shared with contractors/installers, write the entire page in respectful peer-to-peer contractor-facing language. Do not add sections titled “Installer-facing wording”, “Installer-facing summary”, or similar — the whole page is already installer-facing. Frame items as preferences, working assumptions, and discussion points to review with the contractor, not as orders or implications that the contractor needs correction.
 4. Add a simple `<li><a href="...">Title</a></li>` in the appropriate `wiki/index.html` section. No summaries/descriptions in the hub list.
 5. If the page needs illustrations, prefer local self-contained SVGs under `/opt/data/hermes-pages/wiki/assets/` unless a licensed/downloaded image is necessary.
+   - When Gordon sends an annotated floor-plan/image, save a local copy under a topic-specific asset directory, run vision analysis on the image, and add it to the page as a figure with a concise caption.
+   - Carry forward plan markup explicitly: measurements, circled dimensions, fixture letters, and rough-in labels. For shower plans, preserve common markup semantics such as `S` = showerhead and `V` = volume/control valve when Gordon identifies them.
+   - Keep uncertainty language only where the markup is genuinely unreadable; if Gordon states what a mark means, treat that as authoritative.
 6. Commit only relevant files from `/opt/data/hermes-pages`, push with `GIT_TERMINAL_PROMPT=0`, then deploy via Wrangler Direct Upload:
    ```bash
    npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true
