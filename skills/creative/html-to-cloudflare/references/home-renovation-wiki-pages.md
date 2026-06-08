@@ -33,6 +33,8 @@ Use this reference when Gordon asks to add or update house-renovation research i
    - When Gordon sends an annotated floor-plan/image, save a local copy under a topic-specific asset directory, run vision analysis on the image, and add it to the page as a figure with a concise caption.
    - Carry forward plan markup explicitly: measurements, circled dimensions, fixture letters, and rough-in labels. For shower plans, preserve common markup semantics such as `S` = showerhead and `V` = volume/control valve when Gordon identifies them.
    - Keep uncertainty language only where the markup is genuinely unreadable; if Gordon states what a mark means, treat that as authoritative.
+   - For product images from retail links, fetch/store local copies under the relevant asset directory and cite the product context in captions. If the retailer blocks direct scraping (Home Depot often returns 403), use the manufacturer's matching product/gallery pages or indexed product-image URLs as a fallback, while preserving the user's intended retail product name/model/link in the page text.
+   - For conceptual exterior/interior mockups, do not present crude paint-over composites as representative. If a quick rough mockup is still useful, label it explicitly as rough and verify it visually before sending; otherwise prefer adding the reference images and text direction to the page, or use a proper perspective-aware design/rendering workflow.
 6. Commit only relevant files from `/opt/data/hermes-pages`, push with `GIT_TERMINAL_PROMPT=0`, then deploy via Wrangler Direct Upload:
    ```bash
    npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true
