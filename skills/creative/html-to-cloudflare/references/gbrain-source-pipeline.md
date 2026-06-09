@@ -53,7 +53,7 @@ The `gbrain sync` command is incremental — it only ingests new/changed files. 
 
 ## Diagnosing whether Hermes Memories or gbrain is wrong
 
-When Gordon says `hermes-memories.html` looks repetitive/gibberish or asks whether Hermes Memories is working, do not detour into the static wiki unless he explicitly asks about it. Answer the binary first:
+When Gordon says `hermes-memories.html` looks repetitive/gibberish, has no memories, or asks whether Hermes Memories is working, do not detour into the static wiki unless he explicitly asks about it. Answer the binary first:
 
 1. Export gbrain with the correct environment:
    ```bash
@@ -63,13 +63,14 @@ When Gordon says `hermes-memories.html` looks repetitive/gibberish or asks wheth
    gbrain export --dir "$TMP"
    ```
 2. Count exported markdown files and compare with rendered sections in `/opt/data/hermes-pages/hermes-memories.html` (`<section class="page" ...>`, not `<article>` or `.page-section`).
-# 3. If counts and page sections match, Hermes Memories is rendering accurately and the issue is gbrain content quality/population.
-# Visible page content should be only the current gbrain export; generated HTML/CSS is just presentation.
+3. If counts and page sections match, Hermes Memories is rendering accurately and the issue is gbrain content quality/population.
+   - If gbrain only has scaffold/core pages (`index`, `log/log`, `readme`, `schema`) or almost no durable content, create/import curated markdown pages in `/opt/data/gbrain-content` rather than padding the HTML generator.
+   - Keep visible page content only from the current gbrain export; generated HTML/CSS is just presentation.
 4. If counts/previews differ, fix the generator before blaming gbrain.
 5. Check organic capture wiring:
    - `memory.provider` should be `gbrain` in `/opt/data/config.yaml`.
    - `/opt/data/plugins/gbrain/` should exist.
-   - `gbrain sources list` and `gbrain list -n 50` should include `sessions/YYYY-MM` after a completed turn or provider smoke test.
+   - `gbrain sources list` and `gbrain list -n 50` should show the expected source pages after a completed import/sync.
 
 Avoid saying “the wiki pages are separate” as the first response when Gordon’s intent is inspecting gbrain. That framing confused the issue; lead with “Hermes Memories is/is not an accurate render of current gbrain export.”
 
