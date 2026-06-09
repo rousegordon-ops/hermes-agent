@@ -95,22 +95,47 @@ def slug_to_display(slug: str) -> str:
     return last.replace('-', ' ').replace('_', ' ').title()
 
 
-def render_inline(text: str) -> str:
+def normalize_slug(slug: str) -> str:
+    """Normalize a gbrain wikilink target to the exported slug form."""
+    slug = slug.strip().replace('\\', '/')
+    return re.sub(r'\.(md|html)$', '', slug, flags=re.IGNORECASE)
+
+
+def slug_anchor(slug: str) -> str:
+    """Return the in-page anchor for an exported gbrain slug."""
+    return normalize_slug(slug).replace('/', '-')
+
+
+def render_inline(text: str, valid_slugs: set[str] | None = None) -> str:
     """Render inline markdown: bold, italic, code, links, [[wikilinks]]."""
     s = html.escape(text, quote=False)
+    code_spans: list[str] = []
+
+    def stash_code(m: re.Match) -> str:
+        code_spans.append(f'<code>{m.group(1)}</code>')
+        return f'\x00CODE{len(code_spans) - 1}\x00'
+
+    # Protect inline code before wikilink/link expansion so examples like
+    # `[[wikilinks]]` stay literal instead of becoming broken anchors.
+    s = re.sub(r'`([^`]+)`', stash_code, s)
+
     def wl(m: re.Match) -> str:
-        target = m.group(1).strip()
+        target = normalize_slug(m.group(1))
         display = slug_to_display(target)
-        return f'<a href="#{target.replace("/", "-")}">{display}</a>'
+        if valid_slugs is not None and target not in valid_slugs:
+            return display
+        return f'<a href="#{slug_anchor(target)}">{display}</a>'
+
     s = re.sub(r'\[\[([^\]]+)\]\]', wl, s)
     s = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', s)
     s = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', s)
     s = re.sub(r'\*(.+?)\*', r'<em>\1</em>', s)
-    s = re.sub(r'`([^`]+)`', r'<code>\1</code>', s)
+    for i, code in enumerate(code_spans):
+        s = s.replace(f'\x00CODE{i}\x00', code)
     return s
 
 
-def md_to_html(body: str) -> str:
+def md_to_html(body: str, valid_slugs: set[str] | None = None) -> str:
     """Convert markdown body to HTML."""
     lines = body.splitlines()
     out: list[str] = []
@@ -125,7 +150,7 @@ def md_to_html(body: str) -> str:
         nonlocal para_buf
         if para_buf:
             joined = ' '.join(para_buf)
-            out.append(f'<p>{render_inline(joined)}</p>')
+            out.append(f'<p>{render_inline(joined, valid_slugs)}</p>')
             para_buf = []
 
     def flush_list():
@@ -145,8 +170,8 @@ def md_to_html(body: str) -> str:
             return
         header_cells = [c.strip() for c in rows[0].strip('|').split('|')]
         body_rows = rows[1:]
-        th = ''.join(f'<th>{render_inline(c)}</th>' for c in header_cells)
-        trs = [''.join(f'<td>{render_inline(c.strip())}</td>' for c in r.strip('|').split('|')) for r in body_rows]
+        th = ''.join(f'<th>{render_inline(c, valid_slugs)}</th>' for c in header_cells)
+        trs = [''.join(f'<td>{render_inline(c.strip(), valid_slugs)}</td>' for c in r.strip('|').split('|')) for r in body_rows]
         out.append('<table><thead><tr>' + th + '</tr></thead><tbody>' + ''.join(f'<tr>{t}</tr>' for t in trs) + '</tbody></table>')
         table_buf = []
 
@@ -174,7 +199,7 @@ def md_to_html(body: str) -> str:
             level = len(m.group(1))
             text = m.group(2).strip()
             anchor = re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
-            out.append(f'<h{level} id="{anchor}">{render_inline(text)}</h{level}>')
+            out.append(f'<h{level} id="{anchor}">{render_inline(text, valid_slugs)}</h{level}>')
             continue
         if line.lstrip().startswith('>'):
             flush_para(); flush_list()
@@ -185,13 +210,13 @@ def md_to_html(body: str) -> str:
             flush_para()
             if in_list and list_type != 'ul': flush_list()
             if not in_list: out.append('<ul>'); in_list = True; list_type = 'ul'
-            out.append(f'<li>{render_inline(m.group(1))}</li>'); continue
+            out.append(f'<li>{render_inline(m.group(1), valid_slugs)}</li>'); continue
         m = re.match(r'^\d+\.\s+(.*)', line)
         if m:
             flush_para()
             if in_list and list_type != 'ol': flush_list()
             if not in_list: out.append('<ol>'); in_list = True; list_type = 'ol'
-            out.append(f'<li>{render_inline(m.group(1))}</li>'); continue
+            out.append(f'<li>{render_inline(m.group(1), valid_slugs)}</li>'); continue
         if line.strip() in ('---', '***', '___'):
             flush_para(); flush_list(); out.append('<hr>'); continue
         flush_list(); para_buf.append(line.strip())
@@ -224,14 +249,16 @@ def build_compendium(pages: dict[str, Path]) -> str:
     slugs = ordered_slugs(pages)
     page_html: list[str] = []
 
-    for i, slug in enumerate(slugs, start=1):
+    valid_slugs = set(slugs)
+
+    for slug in slugs:
         path = pages[slug]
         meta, body = parse_frontmatter(path.read_text(encoding='utf-8'))
         title = meta.get('title') or slug_to_display(slug)
         kicker = f'/{slug}'
-        section_html = md_to_html(body)
+        section_html = md_to_html(body, valid_slugs)
         section_html = re.sub(r'^<h1[^>]*>.*?</h1>\n*', '', section_html, count=1, flags=re.DOTALL)
-        anchor = f'p{i}'
+        anchor = slug_anchor(slug)
         page_html.append(
             f'<section class="page" id="{anchor}">\n'
             f'  <div class="page-kicker">{html.escape(kicker)}</div>\n'
