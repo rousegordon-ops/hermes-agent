@@ -8760,19 +8760,61 @@ class GatewayRunner:
         return True
 
     async def _send_restart_notification(self) -> None:
-        """Clean up the /restart flag file; no chat message is sent.
+        """Send the post-restart "I'm back!" message, then clear the flag.
 
-        Matching GordonClaw's pattern: the back-online announcement comes
-        solely from the entrypoint's "I'm back!" Telegram message on every
-        container start. The gateway used to send a second message when
-        /restart was issued from chat, but that duplicates the entrypoint
-        notification on chat-initiated restarts. We keep the flag-file
-        lifecycle (write on /restart, delete on next boot) so any
-        future consumers of `.restart_notify.json` still see correct
-        side effects, but no message is emitted here.
+        Chat-initiated `/restart` and programmatic Railway redeploys can write
+        `.restart_notify.json` before the process exits.  On the next gateway
+        startup, use the restored platform adapter to notify that same target
+        instead of relying on the container entrypoint.  The entrypoint path has
+        proven too easy to skip or misconfigure; the gateway is the reliable
+        place because adapters are already connected here.
         """
         notify_path = _hermes_home / ".restart_notify.json"
-        notify_path.unlink(missing_ok=True)
+        if not notify_path.exists():
+            return
+
+        try:
+            try:
+                data = json.loads(notify_path.read_text())
+            except Exception as exc:
+                logger.warning("Restart notification file is unreadable: %s", exc)
+                return
+
+            platform_name = str(data.get("platform") or "").strip()
+            chat_id = str(data.get("chat_id") or "").strip()
+            if not platform_name or not chat_id:
+                logger.warning("Restart notification file missing platform/chat_id")
+                return
+
+            try:
+                platform = Platform(platform_name)
+            except ValueError:
+                logger.warning("Restart notification requested unknown platform: %s", platform_name)
+                return
+
+            adapter = self.adapters.get(platform)
+            if not adapter:
+                logger.warning("Restart notification skipped: %s adapter is not connected", platform.value)
+                return
+
+            metadata = None
+            thread_id = data.get("thread_id")
+            if thread_id is not None:
+                metadata = {"thread_id": str(thread_id)}
+
+            result = await adapter.send(chat_id, "I'm back!", metadata=metadata)
+            if getattr(result, "success", True):
+                logger.info("Restart notification sent to %s", platform.value)
+            else:
+                logger.warning(
+                    "Restart notification send failed for %s: %s",
+                    platform.value,
+                    getattr(result, "error", "unknown error"),
+                )
+        except Exception as exc:
+            logger.warning("Restart notification failed: %s", exc)
+        finally:
+            notify_path.unlink(missing_ok=True)
 
     def _set_session_env(self, context: SessionContext) -> list:
         """Set session context variables for the current async task.

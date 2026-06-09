@@ -31,7 +31,7 @@ Trigger a Railway redeploy of the hermes-agent service. The container exits and 
 
 POST the `serviceInstanceRedeploy` mutation to Railway's GraphQL API.
 
-**Caution:** The gateway process exits when the container is told to redeploy — the current conversation will be cut short mid-reply. **Tell the user "Restarting now — the new container will be ready in ~10 minutes (full rebuild)" before triggering.** Matches GordonClaw's pattern: the heads-up gets cut off, but the user knows what to expect; the entrypoint's `"👋 I'm back!"` Telegram message in the next container start is the resumption signal.
+**Caution:** The gateway process exits when the container is told to redeploy — the current conversation will be cut short mid-reply. **Tell the user "Restarting now — the new container will be ready in ~10 minutes (full rebuild)" before triggering.** The resumption signal is now gateway-owned: if `.restart_notify.json` exists, `gateway/run.py:_send_restart_notification()` sends `I'm back!` after adapters reconnect, then removes the flag.
 
 Pending uncommitted edits in `/opt/data/repo` survive the restart (entrypoint preserves them); the watcher commits them on next boot. You can trigger restart immediately after editing without waiting for the watcher.
 
@@ -65,7 +65,7 @@ The IDs are baked in (not secrets):
 
 ### Programmatic restarts and the "I'm back!" flag file
 
-`gateway/run.py:_send_restart_notification()` only fires when `/restart` was triggered from chat (the flag file is written by the chat handler, not by the API call). To get the chat-side restart message after a programmatic restart, pre-create the flag *before* curl:
+`gateway/run.py:_send_restart_notification()` sends `I'm back!` only when `.restart_notify.json` exists. Chat `/restart` writes this file automatically. For a programmatic Railway redeploy, pre-create the flag *before* curl:
 
 ```bash
 HERMES_HOME="${HERMES_HOME:-/opt/data}"
@@ -73,7 +73,7 @@ printf '{"platform":"telegram","chat_id":"%s"}' "$TELEGRAM_HOME_CHANNEL" \
   > "$HERMES_HOME/.restart_notify.json"
 ```
 
-The entrypoint's `"👋 I'm back!"` Telegram message fires on every container start regardless — that one doesn't need this flag.
+On the next gateway startup, after adapters reconnect, the gateway sends `I'm back!` to that target and removes the flag. Do not rely on the Docker entrypoint for this signal.
 
 ## Known Failure Modes
 
