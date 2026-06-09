@@ -9,7 +9,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-05-13T05:08:28.522454456Z"
+exclude-newer = "2026-06-02T13:39:38.345088577Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -2201,7 +2201,7 @@ requires-dist = [
     { name = "mistralai", marker = "extra == 'mistral'", specifier = ">=2.3.0,<3" },
     { name = "modal", marker = "extra == 'modal'", specifier = ">=1.0.0,<2" },
     { name = "numpy", marker = "extra == 'voice'", specifier = ">=1.24.0,<3" },
-    { name = "openai", specifier = ">=2.21.0,<3" },
+    { name = "openai", specifier = ">=2.24.0,<2.25" },
     { name = "parallel-web", specifier = ">=0.4.2,<1" },
     { name = "prompt-toolkit", specifier = ">=3.0.52,<4" },
     { name = "ptyprocess", marker = "sys_platform != 'win32' and extra == 'pty'", specifier = ">=0.7.0,<1" },

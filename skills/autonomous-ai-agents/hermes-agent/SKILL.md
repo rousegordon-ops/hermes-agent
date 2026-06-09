@@ -99,8 +99,8 @@ hermes config path          Print config.yaml path
 hermes config env-path      Print .env path
 hermes config check         Check for missing/outdated config
 hermes config migrate       Update config with new options
-hermes login [--provider P] OAuth login (nous, openai-codex)
-hermes logout               Clear stored auth
+hermes auth add PROVIDER --type oauth   OAuth login (e.g. nous, openai-codex)
+hermes auth logout PROVIDER             Clear stored auth
 hermes doctor [--fix]       Check dependencies and config
 hermes status [--all]       Show component status
 ```
@@ -373,7 +373,7 @@ For Gordon's Railway instance, keep Hermes native memory and GBrain concerns sep
 | AI Gateway (Vercel) | API key | `AI_GATEWAY_API_KEY` |
 | OpenCode Zen | API key | `OPENCODE_ZEN_API_KEY` |
 | OpenCode Go | API key | `OPENCODE_GO_API_KEY` |
-| Qwen OAuth | OAuth | `hermes login --provider qwen-oauth` |
+| Qwen OAuth | OAuth | `hermes auth add qwen-oauth --type oauth` |
 | Custom endpoint | Config | `model.base_url` + `model.api_key` in config.yaml |
 | GitHub Copilot ACP | External | `COPILOT_CLI_PATH` or Copilot CLI |
 
@@ -598,9 +598,10 @@ terminal(command="tmux new-session -d -s resumed 'hermes --resume 20260225_14305
 
 ### Model/provider issues
 1. `hermes doctor` — check config and dependencies
-2. `hermes login` — re-authenticate OAuth providers
+2. OAuth providers: re-authenticate with `hermes auth add <provider> --type oauth` (for OpenAI Codex: `hermes auth add openai-codex --type oauth --no-browser`; Gordon/Railway details in `references/codex-oauth-reauth.md`)
 3. Check `.env` has the right API key
-4. **Copilot 403**: `gh auth login` tokens do NOT work for Copilot API. You must use the Copilot-specific OAuth device code flow via `hermes model` → GitHub Copilot.
+4. **OpenAI Codex OAuth 401/token_expired:** use `HERMES_HOME=/opt/data uv run /opt/data/repo/hermes auth add openai-codex --type oauth --no-browser --timeout 600` on Gordon's Railway instance, then have Gordon complete the device-code flow. See `references/openai-codex-oauth-reauth.md`.
+5. **Copilot 403**: `gh auth login` tokens do NOT work for Copilot API. You must use the Copilot-specific OAuth device code flow via `hermes model` → GitHub Copilot.
 
 ### Changes not taking effect
 - **Tools/skills:** `/reset` starts a new session with updated toolset
