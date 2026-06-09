@@ -75,6 +75,8 @@ printf '{"platform":"telegram","chat_id":"%s"}' "$TELEGRAM_HOME_CHANNEL" \
 
 On the next gateway startup, after adapters reconnect, the gateway sends `I'm back!` to that target and removes the flag. Do not rely on the Docker entrypoint for this signal.
 
+**Duplicate notification pitfall:** there must be exactly one startup comeback sender. Gordon's Railway fork previously had an unconditional sender in `docker/entrypoint.sh` plus the gateway flag-file sender, which produced two `I'm back!` messages. The desired source is the gateway flag-file path only: it is conditional on a user-requested restart/redeploy and uses the connected adapter. If duplicate `I'm back!` messages appear, search both `gateway/run.py` and `docker/entrypoint.sh` for `I'm back`/`sendMessage` and remove the unconditional entrypoint sender. Changes under `docker/**` are Bucket 3 and need a rebuild/image refresh, not just a same-container code restart.
+
 ## Known Failure Modes
 
 ### Mode A — HTTP 403 from Cloudflare (code 1010 "Access denied")

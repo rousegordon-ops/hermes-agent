@@ -140,12 +140,19 @@ For LLM-backed static apps, especially apps that call a Cloudflare Pages Functio
 To regenerate it from current gbrain content:
 
 ```bash
+export PATH=/opt/data/.bun/bin:$PATH HOME=/opt/data
+cd /opt/data/repos/gbrain
+gbrain sync --repo /opt/data/gbrain-content --no-embed --no-pull --yes
 python3 /opt/data/skills/creative/html-to-cloudflare/scripts/gbrain-to-hermes-memories.py
 npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages \
   --project-name hermes-pages --commit-dirty=true
 ```
 
 The script exports all gbrain pages to a temp dir, renders each to HTML, and composes a TOC + per-page section view. The SHA-256 client-side auth gate (cookie `hermes_memories_auth=1`) is preserved verbatim from the existing page so Gordon's credentials keep working. See `references/gbrain-source-pipeline.md` for source sync, export details, and the two parallel content sources for hermes-pages.
+
+**Mobile readability requirement:** Hermes Memories must wrap on phones. Keep the generator CSS mobile-safe: `overflow-wrap:anywhere` for body/page/link/table cells, `table-layout:fixed` for tables, `white-space:pre-wrap` for `pre`/`pre code`, `overflow-x:hidden` on page cards, and narrower mobile padding in the max-width media query. If Gordon reports horizontal scrolling or unwrapped text, fix the generator first, regenerate, deploy, and verify the live HTML contains these CSS rules.
+
+**Redundancy check before regenerating:** active gbrain content should not include raw Hermes session captures or native memory mirrors. If `gbrain sync` reintroduces `sessions/` or `memory-writes/`, archive/remove those from `/opt/data/gbrain-content`, delete the corresponding gbrain page (e.g. `gbrain delete sessions/2026-06 --yes`), sync again, then regenerate. Gordon wants Hermes Memories to inspect curated gbrain, not a redundant transcript/native-memory dump.
 
 1. Edit static HTML directly under `/opt/data/hermes-pages`.
 2. Deploy with Wrangler to the **project name `hermes-pages`**:
