@@ -265,8 +265,8 @@ def build_compendium(pages: dict[str, Path]) -> str:
 <style>
 :root {{ color-scheme: dark; --bg:#0d1117; --panel:#161b22; --panel2:#1c2128; --text:#e6edf3; --muted:#c9d1d9; --line:#30363d; --blue:#58a6ff; --green:#3fb950; --red:#f85149; }}
 * {{ box-sizing:border-box; }}
-body {{ margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); line-height:1.65; }}
-a {{ color:var(--blue); text-decoration:none; }} a:hover {{ text-decoration:underline; }}
+body {{ margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); line-height:1.65; overflow-wrap:anywhere; word-break:normal; }}
+a {{ color:var(--blue); text-decoration:none; overflow-wrap:anywhere; }} a:hover {{ text-decoration:underline; }}
 .auth {{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }}
 .card {{ width:min(440px,100%); background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:32px; box-shadow:0 20px 60px rgba(0,0,0,.35); }}
 .card h1 {{ margin:0 0 8px; font-size:26px; color:var(--text); }}
@@ -285,21 +285,21 @@ h1 {{ font-size:clamp(34px,5vw,58px); line-height:1.05; margin:8px 0 14px; color
 .stats {{ display:flex; flex-wrap:wrap; gap:12px; margin-top:22px; }}
 .stat {{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 14px; }}
 .stat strong {{ display:block; color:var(--text); font-size:18px; }} .stat span {{ color:var(--muted); font-size:12px; }}
-.layout {{ max-width:1120px; margin:0 auto; padding:28px 24px 80px; display:grid; grid-template-columns:minmax(240px,300px) minmax(0,1fr); gap:28px; }}
+.layout {{ width:min(100%,1120px); margin:0 auto; padding:28px 24px 80px; display:grid; grid-template-columns:minmax(240px,300px) minmax(0,1fr); gap:28px; }}
 .toc {{ position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; }}
 .toc h2 {{ margin:0 0 12px; font-size:16px; color:var(--text); }}
 .toc ul {{ list-style:none; padding:0; margin:0; }} .toc li {{ margin:0 0 9px; font-size:14px; }} .toc span {{ display:block; color:var(--muted); font-size:11px; }}
-.page {{ background:rgba(22,27,34,.55); border:1px solid var(--line); border-radius:18px; padding:28px; margin-bottom:22px; overflow:auto; }}
-.page-kicker {{ color:var(--green); font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; }}
+.page {{ background:rgba(22,27,34,.55); border:1px solid var(--line); border-radius:18px; padding:28px; margin-bottom:22px; overflow-x:hidden; max-width:100%; overflow-wrap:anywhere; }}
+.page-kicker {{ color:var(--green); font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; overflow-wrap:anywhere; }}
 .page h1 {{ font-size:28px; line-height:1.2; margin:0 0 18px; border-bottom:1px solid var(--line); padding-bottom:12px; }}
 .page h2 {{ font-size:21px; margin:28px 0 10px; color:var(--text); }}
 .page h3 {{ font-size:17px; margin:22px 0 8px; color:var(--muted); }}
 p {{ margin:0 0 14px; }} ul, ol {{ margin:0 0 14px 24px; }} li {{ margin:6px 0; }}
-table {{ border-collapse:separate; border-spacing:0; width:100%; margin:18px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:14px; }}
-th,td {{ padding:10px 12px; border-bottom:1px solid #21262d; vertical-align:top; }} th {{ background:var(--panel); color:var(--text); text-align:left; }} tr:nth-child(even) td {{ background:rgba(255,255,255,.03); }}
-code {{ background:var(--panel); border:1px solid var(--line); border-radius:5px; padding:1px 5px; }} pre {{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; overflow:auto; }}
+table {{ border-collapse:separate; border-spacing:0; width:100%; table-layout:fixed; margin:18px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:14px; }}
+th,td {{ padding:10px 12px; border-bottom:1px solid #21262d; vertical-align:top; overflow-wrap:anywhere; word-break:normal; }} th {{ background:var(--panel); color:var(--text); text-align:left; }} tr:nth-child(even) td {{ background:rgba(255,255,255,.03); }}
+code {{ background:var(--panel); border:1px solid var(--line); border-radius:5px; padding:1px 5px; white-space:normal; overflow-wrap:anywhere; }} pre {{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; overflow-x:hidden; white-space:pre-wrap; overflow-wrap:anywhere; }} pre code {{ white-space:pre-wrap; border:0; padding:0; }}
 blockquote {{ border-left:3px solid var(--blue); padding-left:14px; color:var(--muted); margin:14px 0; }}
-@media (max-width: 860px) {{ .layout {{ grid-template-columns:1fr; }} .toc {{ position:relative; top:auto; max-height:none; }} }}
+@media (max-width: 860px) {{ .layout {{ grid-template-columns:1fr; padding:18px 12px 56px; }} .hero {{ padding:32px 16px 24px; }} .page {{ padding:18px; border-radius:14px; }} .toc {{ position:relative; top:auto; max-height:none; }} ul, ol {{ margin-left:18px; }} }}
 </style>
 </head>
 <body>
