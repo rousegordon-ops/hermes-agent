@@ -179,6 +179,20 @@ If `bun run test` gets killed in Railway due to memory/parallel-shard pressure, 
 
 `llms-full.txt`, `CHANGELOG.md`, and some generated/docs files may legitimately contain conflict-marker strings as quoted historical content; prefer anchored `git grep` with exclusions instead of a naive whole-tree text scan.
 
+## GBrain content quality / redundancy policy
+
+Gordon does not want gbrain to be a redundant dump of Hermes native memory or raw conversation/session logs. Redundancy is bad. Treat gbrain as durable curated knowledge, not another transcript store.
+
+Current corrective policy:
+
+- Do not mirror native memory hot-cache pages (`memory`, `user`) into gbrain content.
+- Do not keep `memory-writes/*` audit logs in active gbrain content.
+- Do not append raw completed Telegram turns into active gbrain pages by default.
+- Raw captures, if temporarily needed for debugging, belong outside the synced content source (e.g. `/opt/data/gbrain-archive/`) until synthesized.
+- Prefer concise durable pages: projects, decisions, summaries, facts, and open questions.
+
+The local `/opt/data/plugins/gbrain` provider was changed to default `capture_raw_turns=false` and `capture_memory_writes=false`; code changes require a Railway restart to affect the long-running gateway.
+
 ## Pitfalls
 
 - Do not use `/opt/data/memories` as a durable gbrain content path; it collides with Hermes native memory and confuses future sessions.
