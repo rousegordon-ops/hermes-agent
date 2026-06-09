@@ -26,17 +26,12 @@ import re
 import subprocess
 import sys
 import shutil
-from datetime import datetime, timezone
 from pathlib import Path
 
 # ── Config ───────────────────────────────────────────────────────────
 EXPORTER = '/opt/data/.bun/bin/gbrain'
 EXPORT_DIR = Path('/tmp/gbrain-export')
 OUTPUT = Path('/opt/data/hermes-pages/hermes-memories.html')
-
-# Existing auth gate (SHA-256 of email + password). Kept verbatim.
-EH = '211759b4f87a00f4d92cf64700ce17c9cd9fa411d6ec1124a6f8901c5c3f311a'
-PH = '183cea1bedac2239a9691a71f700778aef388302d64697e9571662edb656dbfc'
 
 # Page order: index first, then meta, then content. Matches gbrain "feel".
 PAGE_ORDER = ['index', 'user', 'memory', 'schema', 'readme', 'log/log']
@@ -227,10 +222,7 @@ def ordered_slugs(pages: dict[str, Path]) -> list[str]:
 
 def build_compendium(pages: dict[str, Path]) -> str:
     slugs = ordered_slugs(pages)
-    sections: list[tuple[str, str, str, int]] = []
     page_html: list[str] = []
-    total_chars = 0
-    generated = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
 
     for i, slug in enumerate(slugs, start=1):
         path = pages[slug]
@@ -247,13 +239,7 @@ def build_compendium(pages: dict[str, Path]) -> str:
             f'{section_html}\n'
             f'</section>'
         )
-        sections.append((anchor, title, kicker, len(body)))
-        total_chars += len(body)
 
-    toc_items = '\n'.join(
-        f'<li><a href="#{a}">{html.escape(t)}</a> <span>{html.escape(k)}</span></li>'
-        for (a, t, k, _) in sections
-    )
     body_html = '\n'.join(page_html)
 
     return f'''<!doctype html>
@@ -261,37 +247,16 @@ def build_compendium(pages: dict[str, Path]) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hermes Memories — Gordon's Wiki Compendium</title>
+<title>gbrain</title>
 <style>
-:root {{ color-scheme: dark; --bg:#0d1117; --panel:#161b22; --panel2:#1c2128; --text:#e6edf3; --muted:#c9d1d9; --line:#30363d; --blue:#58a6ff; --green:#3fb950; --red:#f85149; }}
+:root {{ color-scheme: dark; --bg:#0d1117; --panel:#161b22; --text:#e6edf3; --muted:#c9d1d9; --line:#30363d; --blue:#58a6ff; --green:#3fb950; }}
 * {{ box-sizing:border-box; }}
 body {{ margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); line-height:1.65; overflow-wrap:anywhere; word-break:normal; }}
 a {{ color:var(--blue); text-decoration:none; overflow-wrap:anywhere; }} a:hover {{ text-decoration:underline; }}
-.auth {{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }}
-.card {{ width:min(440px,100%); background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:32px; box-shadow:0 20px 60px rgba(0,0,0,.35); }}
-.card h1 {{ margin:0 0 8px; font-size:26px; color:var(--text); }}
-.card p {{ color:var(--muted); margin:0 0 24px; }}
-label {{ display:block; margin:14px 0 6px; color:var(--muted); font-size:13px; }}
-input {{ width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:#0d1117; color:var(--text); font-size:16px; }}
-button {{ width:100%; margin-top:20px; padding:12px 14px; background:#1f6feb; color:white; border:0; border-radius:10px; font-weight:700; cursor:pointer; }}
-button:hover {{ background:#388bfd; }}
-.err {{ min-height:22px; color:var(--red); margin-top:12px; font-size:13px; }}
-#app {{ display:none; }}
-.hero {{ border-bottom:1px solid var(--line); background:linear-gradient(180deg,#161b22 0%,#0d1117 100%); padding:44px 24px 30px; }}
-.hero-inner {{ max-width:1120px; margin:0 auto; }}
-.eyebrow {{ color:var(--green); text-transform:uppercase; letter-spacing:.08em; font-size:12px; font-weight:800; }}
-h1 {{ font-size:clamp(34px,5vw,58px); line-height:1.05; margin:8px 0 14px; color:var(--blue); }}
-.subtitle {{ max-width:820px; color:var(--muted); font-size:18px; margin:0; }}
-.stats {{ display:flex; flex-wrap:wrap; gap:12px; margin-top:22px; }}
-.stat {{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 14px; }}
-.stat strong {{ display:block; color:var(--text); font-size:18px; }} .stat span {{ color:var(--muted); font-size:12px; }}
-.layout {{ width:min(100%,1120px); margin:0 auto; padding:28px 24px 80px; display:grid; grid-template-columns:minmax(240px,300px) minmax(0,1fr); gap:28px; }}
-.toc {{ position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; }}
-.toc h2 {{ margin:0 0 12px; font-size:16px; color:var(--text); }}
-.toc ul {{ list-style:none; padding:0; margin:0; }} .toc li {{ margin:0 0 9px; font-size:14px; }} .toc span {{ display:block; color:var(--muted); font-size:11px; }}
+.layout {{ width:min(100%,1120px); margin:0 auto; padding:28px 24px 80px; }}
 .page {{ background:rgba(22,27,34,.55); border:1px solid var(--line); border-radius:18px; padding:28px; margin-bottom:22px; overflow-x:hidden; max-width:100%; overflow-wrap:anywhere; }}
 .page-kicker {{ color:var(--green); font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; overflow-wrap:anywhere; }}
-.page h1 {{ font-size:28px; line-height:1.2; margin:0 0 18px; border-bottom:1px solid var(--line); padding-bottom:12px; }}
+.page h1 {{ font-size:28px; line-height:1.2; margin:0 0 18px; color:var(--blue); border-bottom:1px solid var(--line); padding-bottom:12px; }}
 .page h2 {{ font-size:21px; margin:28px 0 10px; color:var(--text); }}
 .page h3 {{ font-size:17px; margin:22px 0 8px; color:var(--muted); }}
 p {{ margin:0 0 14px; }} ul, ol {{ margin:0 0 14px 24px; }} li {{ margin:6px 0; }}
@@ -299,42 +264,13 @@ table {{ border-collapse:separate; border-spacing:0; width:100%; table-layout:fi
 th,td {{ padding:10px 12px; border-bottom:1px solid #21262d; vertical-align:top; overflow-wrap:anywhere; word-break:normal; }} th {{ background:var(--panel); color:var(--text); text-align:left; }} tr:nth-child(even) td {{ background:rgba(255,255,255,.03); }}
 code {{ background:var(--panel); border:1px solid var(--line); border-radius:5px; padding:1px 5px; white-space:normal; overflow-wrap:anywhere; }} pre {{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; overflow-x:hidden; white-space:pre-wrap; overflow-wrap:anywhere; }} pre code {{ white-space:pre-wrap; border:0; padding:0; }}
 blockquote {{ border-left:3px solid var(--blue); padding-left:14px; color:var(--muted); margin:14px 0; }}
-@media (max-width: 860px) {{ .layout {{ grid-template-columns:1fr; padding:18px 12px 56px; }} .hero {{ padding:32px 16px 24px; }} .page {{ padding:18px; border-radius:14px; }} .toc {{ position:relative; top:auto; max-height:none; }} ul, ol {{ margin-left:18px; }} }}
+@media (max-width: 860px) {{ .layout {{ padding:18px 12px 56px; }} .page {{ padding:18px; border-radius:14px; }} ul, ol {{ margin-left:18px; }} }}
 </style>
 </head>
 <body>
-<div id="auth" class="auth">
-  <div class="card">
-    <h1>Hermes Memories</h1>
-    <p>Protected compendium generated from Gordon's gbrain knowledge base.</p>
-    <label for="email">Email</label><input id="email" type="email" autocomplete="username">
-    <label for="pw">Password</label><input id="pw" type="text" autocomplete="off">
-    <button id="signin">Sign in</button><div id="err" class="err"></div>
-  </div>
-</div>
-<div id="app">
-  <header class="hero"><div class="hero-inner">
-    <div class="eyebrow">Generated from gbrain (runtime DB at /opt/data/.gbrain)</div>
-    <h1>Hermes Memories</h1>
-    <p class="subtitle">A single-page HTML compendium of Gordon's gbrain knowledge base, regenerated from <code>gbrain export</code> on {generated}. Page links below scroll to in-page sections.</p>
-    <div class="stats"><div class="stat"><strong>{len(sections)}</strong><span>gbrain pages</span></div><div class="stat"><strong>{total_chars:,}</strong><span>total chars</span></div><div class="stat"><strong>Protected</strong><span>client-side access gate</span></div><div class="stat"><strong>{generated.split(' ')[0]}</strong><span>generated</span></div></div>
-  </div></header>
-  <main class="layout"><nav class="toc"><h2>Contents</h2><ul>{toc_items}</ul></nav><div>
+<main class="layout">
 {body_html}
-</div></main>
-</div>
-<script>
-const EH='{EH}', PH='{PH}';
-async function sha256(s) {{ const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }}
-function showApp() {{ document.getElementById('auth').style.display='none'; document.getElementById('app').style.display='block'; }}
-(function() {{ if (document.cookie.match(/hermes_memories_auth=1/)) showApp(); }})();
-async function doLogin() {{
-  const email=document.getElementById('email').value.trim().toLowerCase(); const pw=document.getElementById('pw').value;
-  if ((await sha256(email))===EH && (await sha256(pw))===PH) {{ document.cookie='hermes_memories_auth=1; path=/; max-age=31536000; SameSite=Lax'; showApp(); }}
-  else {{ document.getElementById('err').textContent = ((await sha256(email))!==EH) ? 'Email not recognized' : 'Incorrect password'; document.getElementById('pw').value=''; }}
-}}
-document.getElementById('signin').addEventListener('click', doLogin); document.getElementById('pw').addEventListener('keydown', e=>{{if(e.key==='Enter')doLogin();}});
-</script>
+</main>
 </body>
 </html>
 '''

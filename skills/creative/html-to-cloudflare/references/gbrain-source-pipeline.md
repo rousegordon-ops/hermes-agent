@@ -63,7 +63,8 @@ When Gordon says `hermes-memories.html` looks repetitive/gibberish or asks wheth
    gbrain export --dir "$TMP"
    ```
 2. Count exported markdown files and compare with rendered sections in `/opt/data/hermes-pages/hermes-memories.html` (`<section class="page" ...>`, not `<article>` or `.page-section`).
-3. If counts and previews match, Hermes Memories is rendering accurately and the problem is gbrain content quality/population.
+# 3. If counts and page sections match, Hermes Memories is rendering accurately and the issue is gbrain content quality/population.
+# Visible page content should be only the current gbrain export; generated HTML/CSS is just presentation.
 4. If counts/previews differ, fix the generator before blaming gbrain.
 5. Check organic capture wiring:
    - `memory.provider` should be `gbrain` in `/opt/data/config.yaml`.
@@ -107,7 +108,7 @@ The canonical generator lives at:
 
 (A canonical copy is also at `/opt/data/scripts/gbrain-to-hermes-memories.py` for cron / out-of-skill use.)
 
-It runs `gbrain export` to a temp dir, strips YAML frontmatter, converts each page's markdown to HTML (headings, paragraphs, code blocks, blockquotes, lists, tables, `[[wikilinks]]`), and composes a single-page compendium with TOC + per-page sections. The SHA-256 client-side auth gate from the existing `hermes-memories.html` is preserved verbatim so Gordon's credentials keep working.
+It runs `gbrain export` to a temp dir, strips YAML frontmatter, converts each page's markdown to HTML (headings, paragraphs, code blocks, blockquotes, lists, tables, `[[wikilinks]]`), and composes only the exported gbrain pages. Do not add visible chrome that is not in gbrain itself: no auth gate, generated timestamp, stats, explanatory hero, or memory/wiki framing.
 
 ```bash
 # Regenerate
