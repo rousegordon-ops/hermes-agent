@@ -338,32 +338,6 @@ if [ -x "$HERMES_BIN" ]; then
         || echo "[entrypoint] WARNING: failed to enforce auxiliary.title_generation.model"
 fi
 
-# ---------- Startup Telegram notification ----------
-# Tell the operator the container is back online after every restart
-# or rebuild. Best-effort: if Telegram env isn't set or the API call
-# fails, we just log and continue. Uses Python urllib because curl
-# is not installed in this image.
-if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_HOME_CHANNEL:-}" ]; then
-    if python3 - >/dev/null 2>&1 <<'PYEOF'
-import os, urllib.parse, urllib.request
-data = urllib.parse.urlencode({
-    "chat_id": os.environ["TELEGRAM_HOME_CHANNEL"],
-    "text": "I'm back!",
-}).encode("utf-8")
-req = urllib.request.Request(
-    f"https://api.telegram.org/bot{os.environ['TELEGRAM_BOT_TOKEN']}/sendMessage",
-    data=data,
-)
-with urllib.request.urlopen(req, timeout=10) as r:
-    r.read()
-PYEOF
-    then
-        echo "[entrypoint] Sent startup Telegram notification"
-    else
-        echo "[entrypoint] WARNING: startup Telegram notification failed"
-    fi
-fi
-
 # Final exec: two supported invocation patterns.
 #
 #   docker run <image>                 -> exec `hermes` with no args (legacy default)
