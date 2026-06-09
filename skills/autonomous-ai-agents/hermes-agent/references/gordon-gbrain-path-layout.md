@@ -189,7 +189,7 @@ Current corrective policy:
 - Do not keep `memory-writes/*` audit logs in active gbrain content.
 - Do not append raw completed Telegram turns into active gbrain pages by default.
 - Raw captures, if temporarily needed for debugging, belong outside the synced content source (e.g. `/opt/data/gbrain-archive/`) until synthesized.
-- Prefer concise durable pages: projects, decisions, summaries, facts, and open questions.
+- `hermes-memories.html` should be a mirror of current `gbrain export`: visible content must come from exported gbrain pages only. Presentation CSS/section wrappers are OK; do not add separate auth, hero/stats, generated timestamp, or explanatory page chrome. Broken wikilinks to absent pages (`memory`, `user`, etc.) should render as plain text, not dead anchors.
 
 The local `/opt/data/plugins/gbrain` provider was changed to default `capture_raw_turns=false` and `capture_memory_writes=false`; code changes require a Railway restart to affect the long-running gateway.
 

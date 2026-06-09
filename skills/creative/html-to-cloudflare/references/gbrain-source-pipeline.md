@@ -73,30 +73,11 @@ When Gordon says `hermes-memories.html` looks repetitive/gibberish or asks wheth
 
 Avoid saying “the wiki pages are separate” as the first response when Gordon’s intent is inspecting gbrain. That framing confused the issue; lead with “Hermes Memories is/is not an accurate render of current gbrain export.”
 
-## Organic Hermes → gbrain capture
+## Hermes → gbrain capture policy
 
-Gordon's Railway instance has a user-installed Hermes memory provider at:
+Gordon does **not** want gbrain to be a redundant dump of native Hermes memory or raw conversation logs. Treat gbrain as curated durable knowledge. The local provider at `/opt/data/plugins/gbrain/` defaults `capture_raw_turns=false` and `capture_memory_writes=false`; do not re-enable raw `sessions/` or `memory-writes/` capture unless Gordon explicitly asks for debugging/audit capture.
 
-```
-/opt/data/plugins/gbrain/
-```
-
-It is enabled with:
-
-```yaml
-memory:
-  provider: gbrain
-```
-
-The provider passively appends completed primary-agent turns to markdown under `/opt/data/gbrain-content/sessions/`, commits the changed markdown locally, then runs:
-
-```bash
-gbrain sync --repo /opt/data/gbrain-content --no-embed --no-pull --yes
-```
-
-This is what makes gbrain organically accumulate inspectable knowledge without manual imports. Config changes require a fresh agent instance/restart before the gateway uses the provider for future turns. To smoke-test without a live model call, load `plugins.memory.load_memory_provider('gbrain')` with `HERMES_HOME=/opt/data`, call `initialize(...)`, then `sync_turn(...)`, and verify `gbrain list` includes `sessions/YYYY-MM`.
-
-Important implementation detail: `gbrain sync` advances by git commits in `/opt/data/gbrain-content`; writing markdown files alone is not enough. The provider commits changed `sessions/` or `memory-writes/` files locally before running sync. If a future smoke test writes a markdown file but `gbrain list` does not change, check git status/log in `/opt/data/gbrain-content` first.
+If `gbrain export` or `hermes-memories.html` shows `sessions/YYYY-MM`, `memory-writes/*`, `memory`, or `user`, remove/archive those from active gbrain before regenerating the HTML mirror. Raw captures belong outside synced gbrain content (e.g. `/opt/data/gbrain-archive/`) until synthesized.
 
 ## Rendering gbrain → hermes-memories.html
 
@@ -118,17 +99,27 @@ python3 /opt/data/skills/creative/html-to-cloudflare/scripts/gbrain-to-hermes-me
 npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages \
   --project-name hermes-pages --commit-dirty=true
 
-# Verify live
-curl -s https://hermes-pages-d55.pages.dev/hermes-memories | grep -E "eyebrow|gbrain pages"
+# Verify live: no broken in-page anchors, and no non-gbrain chrome
+python3 - <<'PY'
+import re, urllib.request
+url='https://hermes-pages-d55.pages.dev/hermes-memories.html'
+html=urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=30).read().decode('utf-8','replace')
+ids=set(re.findall(r'\bid="([^"]+)"', html))
+hrefs=re.findall(r'href="#([^"]+)"', html)
+assert not [h for h in hrefs if h not in ids]
+for needle in ['Hermes Memories','Generated from gbrain','gbrain pages','hermes_memories_auth','Sign in']:
+    assert needle not in html, needle
+print('ok', url, len(html))
+PY
 ```
 
 Page order is controlled by the `PAGE_ORDER` list at the top of the script. To add new pages, just regenerate after `gbrain sync` — anything exported that isn't in `PAGE_ORDER` is appended alphabetically.
 
 ## Pitfalls
 
-- **Don't trust stale stats in the page itself.** The page shows a "N gbrain pages" stat. After running `gbrain sync` to ingest new content, regenerate the page so the stat reflects current state. Gordon will notice if it says "6 pages" but the TOC clearly has more.
+- **The page must not contain non-gbrain visible content.** Gordon wants `hermes-memories.html` to be a mirror of current `gbrain export`, not a branded app. Do not add an auth/login gate, hero, stats, generated timestamp, explanatory provenance text, or TOC unless those strings come from gbrain itself. CSS/HTML structure for presentation is fine.
+- **Do not emit broken wikilinks.** Use exported slugs as section ids (`index`, `schema`, `readme`, `log-log`). If a `[[target]]` is not present in the current export, render its display text as plain text rather than `<a href="#target">`. Protect inline code before wikilink expansion so examples like ``[[wikilinks]]`` stay literal.
 - **Don't conflate `gordons-llm-wiki/` (under `hermes-pages/`) with `gbrain-content/`.** The former is the markdown source for the static HTML wiki (now retired — wiki is hand-edited HTML). The latter is gbrain's source-of-truth git repo. Different content, different pipelines, different cadences.
 - **The `gbrain` CLI silently uses `/opt/data/.gbrain` only when `HOME=/opt/data`.** If you forget to set HOME, the brain DB ends up in `~/.gbrain` (e.g. `/root/.gbrain`) and the import appears to "succeed" but lands in the wrong place. Always check the result of `gbrain list` after import.
 - **`/opt/data/hermes-pages-repo` does not exist** — that's a deprecated path from older sessions. Use `/opt/data/hermes-pages` directly.
 - **Cloudflare deploy is required after every content change** — the project is Direct Upload, not Git Integration. `git push` only updates the GitHub mirror. See the "Critical Deployment Failures" section in the SKILL.md for recovery options when live pages don't update.
-- **`hermes-memories.html` auth gate uses a separate cookie (`hermes_memories_auth=1`) and a different password from the wiki.** Don't reuse the `wiki_auth=GW2026` cookie on this page — it lives at root scope, not `/wiki/`. The two pages have independent auth.

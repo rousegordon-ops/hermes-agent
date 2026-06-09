@@ -148,7 +148,7 @@ npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages \
   --project-name hermes-pages --commit-dirty=true
 ```
 
-The script exports all gbrain pages to a temp dir, renders each to HTML, and composes a TOC + per-page section view. The SHA-256 client-side auth gate (cookie `hermes_memories_auth=1`) is preserved verbatim from the existing page so Gordon's credentials keep working. See `references/gbrain-source-pipeline.md` for source sync, export details, and the two parallel content sources for hermes-pages.
+The script exports all gbrain pages to a temp dir, renders each to HTML, and composes a page containing only those exported gbrain pages. Do **not** preserve or add visible non-gbrain chrome (auth gate, hero, stats, generated timestamp, explanatory provenance text, TOC) unless those strings are actually in gbrain. See `references/gbrain-source-pipeline.md` for source sync, export details, link validation, and the two parallel content sources for hermes-pages.
 
 **Mobile readability requirement:** Hermes Memories must wrap on phones. Keep the generator CSS mobile-safe: `overflow-wrap:anywhere` for body/page/link/table cells, `table-layout:fixed` for tables, `white-space:pre-wrap` for `pre`/`pre code`, `overflow-x:hidden` on page cards, and narrower mobile padding in the max-width media query. If Gordon reports horizontal scrolling or unwrapped text, fix the generator first, regenerate, deploy, and verify the live HTML contains these CSS rules.
 
