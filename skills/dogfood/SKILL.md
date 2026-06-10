@@ -151,6 +151,7 @@ Save the report to `{output_dir}/report.md`.
 
 ## Tips
 
+- **If browser automation is unavailable**, do not stop. Fall back to non-browser probes: `web_extract`, `curl`/Python `urllib`, direct JSON/API endpoints discovered in page scripts, and static HTML inspection. For shared/chat pages, inspect `<script>` blocks for fetch routes (for example `/share/:token/messages`) and retrieve the backing JSON directly to reproduce content bugs.
 - **Always check `browser_console()` after navigating and after significant interactions.** Silent JS errors are among the most valuable findings.
 - **Use `annotate=true` with `browser_vision`** when you need to reason about interactive element positions or when the snapshot refs are unclear.
 - **Test with both valid and invalid inputs** — form validation bugs are common.

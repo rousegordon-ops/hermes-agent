@@ -183,6 +183,16 @@ curl -s -X POST \
   -d '{"owner": "'"$GH_USER"'", "name": "my-new-app", "private": false}'
 ```
 
+## Push local archive after user creates the remote
+
+If repo creation failed earlier but the user later says they created the GitHub repo:
+
+1. Verify the remote exists via API or `git ls-remote` without printing credentials.
+2. Add/update `origin` to the expected HTTPS GitHub URL.
+3. Run `git status --short --branch` and ensure the local archive commit is present.
+4. `git push -u origin main`.
+5. Verify with `git ls-remote --heads origin main` and/or the commits API; report the remote commit hash.
+
 ## Local archive fallback when remote creation is blocked
 
 When asked to archive files into a new GitHub repo but remote creation is blocked by token scope:

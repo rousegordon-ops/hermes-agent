@@ -275,6 +275,16 @@ This is NOT a failed hypothesis — this is a wrong architecture.
 
 ## Pitfalls
 
+### Railway CLI link masked by environment variables
+
+When debugging or deploying a Railway-backed app from inside Hermes/Railway, `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID`, and `RAILWAY_ENVIRONMENT_ID` in the process environment can override the directory's `.railway` link. `railway status` may show the Hermes service even after `railway link` succeeded for a different repo. Verify with:
+
+```bash
+env -u RAILWAY_PROJECT_ID -u RAILWAY_SERVICE_ID -u RAILWAY_ENVIRONMENT_ID railway status
+```
+
+or the equivalent `npx --yes @railway/cli status`. Only deploy after status shows the intended project/service.
+
 ### Silent Daemon Wedge
 
 A long-running daemon (watcher, daemon, etc.) can appear frozen — no output, no errors, but process alive. Before assuming the process is wedged, check:
