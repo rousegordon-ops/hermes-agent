@@ -17,6 +17,7 @@ Create, clone, fork, configure, and manage GitHub repositories. Each section sho
 ## Prerequisites
 
 - Authenticated with GitHub (see `github-auth` skill)
+- Before creating a repo, verify that the available credential can create repositories; a token that can push to existing repos may still fail repo creation with `Resource not accessible by personal access token`.
 
 ### Setup
 
@@ -82,6 +83,34 @@ gh repo clone owner/repo-name -- --depth 1
 ```
 
 ## 2. Creating Repositories
+
+**Credential check before creating:**
+
+```bash
+# If gh is unavailable, detect a git-credential token without printing it.
+python3 - <<'PY'
+from pathlib import Path
+import re, subprocess, json
+cred = Path('/opt/data/.git-credentials')
+if not cred.exists():
+    print('NO_GIT_CREDENTIALS')
+    raise SystemExit(0)
+line = cred.read_text().splitlines()[0]
+m = re.match(r'https://([^:]+):([^@]+)@github.com', line)
+if not m:
+    print('NO_GITHUB_TOKEN_IN_CREDENTIALS')
+    raise SystemExit(0)
+token = m.group(2)
+r = subprocess.run([
+    'curl','-sS','-H',f'Authorization: Bearer {token}',
+    '-H','Accept: application/vnd.github+json','https://api.github.com/user'
+], capture_output=True, text=True)
+data = json.loads(r.stdout or '{}')
+print('login', data.get('login'), 'message', data.get('message'))
+PY
+```
+
+If `POST /user/repos` returns `Resource not accessible by personal access token`, do **not** keep retrying or expose the token. The credential can authenticate but lacks repo-creation permission. Create a local git repo/archive, verify it, and tell the user exactly what permission/action is needed to push it.
 
 **With gh:**
 
@@ -153,6 +182,21 @@ curl -s -X POST \
   https://api.github.com/repos/owner/template-repo/generate \
   -d '{"owner": "'"$GH_USER"'", "name": "my-new-app", "private": false}'
 ```
+
+## Local archive fallback when remote creation is blocked
+
+When asked to archive files into a new GitHub repo but remote creation is blocked by token scope:
+
+1. Create the local repository anyway in a durable path such as `/opt/data/<repo-name>`.
+2. Copy the requested current files and any referenced local assets.
+3. Preserve provenance: include source repo URL/name, source commit, `git status --short`, per-file `git log --follow`, and optionally per-file patch history.
+4. Add a `MANIFEST.sha256` for integrity.
+5. Commit locally with repo-local `user.name` / `user.email` if global git identity is missing.
+6. Scan the archive for secret-looking strings before packaging or sharing.
+7. Produce a tarball or other deliverable only after the repo is committed and `git status --short` is clean.
+8. Report the exact GitHub API error and the required next step (e.g. create the empty repo or provide a token with repo creation permission).
+
+---
 
 ## 3. Forking Repositories
 
