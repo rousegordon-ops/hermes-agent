@@ -39,6 +39,11 @@ Good structure for a standalone schedule page:
 - Hero with event name and clear timezone statement.
 - Stats: match count, host locations, opening date, final date.
 - Search box across team/city/stadium/stage.
+- For Gordon-facing utility schedules, prefer a live regex search with a dynamic suggestions dropdown, not just plain substring filtering:
+  - Compile user input with `new RegExp(raw, 'i')`; show an inline invalid-regex error instead of throwing.
+  - Build suggestions from unique teams, full matches, stadiums, locations, and stages from the embedded schedule JSON.
+  - Dropdown should update while typing, highlight the matching text, and let clicks populate the escaped literal value.
+  - Filtering should apply the regex to each row's normalized `data-search` text while still respecting city/stage filters.
 - Filter chips for host locations and stages.
 - Responsive table: date/time, match, location, TV/streaming.
 - On mobile, turn rows into cards; avoid wide tables.
@@ -55,6 +60,27 @@ assert '<expected PT kickoff>' in s
 assert s.count('<tr data-stage=') == <expected_match_count>
 ```
 
+If the page includes inline JavaScript, extract the functional script and run a syntax check before commit:
+
+```bash
+python3 - <<'PY'
+from html.parser import HTMLParser
+from pathlib import Path
+class P(HTMLParser):
+    def __init__(self): super().__init__(); self.in_script=False; self.buf=[]; self.scripts=[]
+    def handle_starttag(self, tag, attrs):
+        if tag == 'script': self.in_script=True; self.buf=[]
+    def handle_endtag(self, tag):
+        if tag == 'script' and self.in_script:
+            self.scripts.append(''.join(self.buf)); self.in_script=False
+    def handle_data(self, data):
+        if self.in_script: self.buf.append(data)
+p = P(); p.feed(Path('/opt/data/hermes-pages/<page>.html').read_text())
+Path('/tmp/<page>-script.js').write_text(p.scripts[-1])
+PY
+node --check /tmp/<page>-script.js
+```
+
 After Wrangler deploy, verify canonical URL, not just preview URL:
 
 ```python
@@ -63,4 +89,5 @@ url = 'https://hermes-pages-d55.pages.dev/<page>'
 html = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'}), timeout=40).read().decode('utf-8','replace')
 assert '<expected opening match>' in html
 assert html.count('<tr data-stage=') == <expected_match_count>
+assert 'id="suggestions"' in html  # if regex dropdown was requested
 ```
