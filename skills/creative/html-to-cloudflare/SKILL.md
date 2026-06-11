@@ -283,6 +283,7 @@ Pitfalls:
 - **Profession/career** — landing page with work history, targets, contact info (email as plain text, GitHub in hero)
 - **Hobbies** — future: interests, projects outside work, GitHub link goes here per Gordon's preference
 - **Reports** — one-off generated content (job search summaries, analysis, etc.)
+- **Schedule/reference pages** — public utility pages with searchable/filterable data tables, e.g. sports schedules. For event schedules with timezone conversion, use `references/sports-schedule-static-pages.md`: fetch authoritative/public API data, convert times with Python `zoneinfo`, label Pacific summer events as PT/PDT correctly, verify expected row counts before and after deploy.
 
 Each gets its own entry in the hub index.
 
