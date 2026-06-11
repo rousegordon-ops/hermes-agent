@@ -20,6 +20,29 @@ Useful event fields:
 
 Cross-check against the official FIFA schedule announcement/PDF before publishing, especially match count and opening/final details.
 
+## Kalshi / betting line enrichment
+
+For World Cup match winner markets, Kalshi's public unauthenticated API worked with:
+
+```text
+https://external-api.kalshi.com/trade-api/v2/markets?status=open&limit=100&series_ticker=KXWCGAME
+```
+
+The response is paginated with `cursor`; fetch all pages. Group rows by `event_ticker`; each group has three binary markets for team A, tie, team B. Useful fields:
+- `title` — e.g. `Congo DR vs Uzbekistan Winner?`.
+- `yes_sub_title` — outcome label (`Congo DR`, `Tie`, `Uzbekistan`).
+- `yes_bid_dollars`, `yes_ask_dollars`, `last_price_dollars` — decimal dollar probabilities; display as cents/ranges (`30–31¢`).
+
+Match names may differ between sources. Normalize before matching:
+- `Korea Republic` ↔ `South Korea`
+- `IR Iran` ↔ `Iran`
+- `USA` / `US` ↔ `United States`
+- `Bosnia and Herzegovina` ↔ `Bosnia-Herzegovina`
+- `DR Congo` ↔ `Congo DR`
+- remove accents for names such as `Curaçao`.
+
+Only group-stage matchups have known teams; knockout placeholders should show `Kalshi: not posted yet` or similar until markets exist. Add a footer/source note that lines are a point-in-time snapshot, because static pages will stale unless regenerated.
+
 ## Timezone conversion
 
 Use Python, not mental math:
@@ -38,15 +61,15 @@ For June/July events, the actual abbreviation is PDT. If the user asks for PST/P
 Good structure for a standalone schedule page:
 - Hero with event name and clear timezone statement.
 - Stats: match count, host locations, opening date, final date.
-- Search box across team/city/stadium/stage.
-- For Gordon-facing utility schedules, prefer a live regex search with a dynamic suggestions dropdown, not just plain substring filtering:
-  - Compile user input with `new RegExp(raw, 'i')`; show an inline invalid-regex error instead of throwing.
-  - Build suggestions from unique teams, full matches, stadiums, locations, and stages from the embedded schedule JSON.
-  - Dropdown should update while typing, highlight the matching text, and let clicks populate the escaped literal value.
-  - Filtering should apply the regex to each row's normalized `data-search` text while still respecting city/stage filters.
+- Prefer separate regex search fields when the data has natural facets, especially sports schedules:
+  - `Team regex…` filters only team/match text and has a team/match suggestion dropdown.
+  - `Venue regex…` filters only stadium/location text and has a stadium/location suggestion dropdown.
+  - Compile each input with `new RegExp(raw, 'i')`; show an inline invalid-regex error instead of throwing.
+  - Dropdowns should update while typing, highlight the matching text, and let clicks populate the escaped literal value.
+  - Filters must compose with each other and with city/stage chips.
 - Filter chips for host locations and stages.
-- Responsive table: date/time, match, location, TV/streaming.
-- On mobile, turn rows into cards; avoid wide tables.
+- For long event lists, group games by day using separate visible day boxes, not a single table with ambiguous separator rows. Each day should be its own bordered section (`.day-group`) containing that day’s `.game-card` entries; the date header applies to the games inside the box. Do not add directional arrows once boxed.
+- Responsive cards: date/time, match, location, TV/streaming, and optional market/line data. Avoid wide tables for user-facing mobile schedules.
 - High-contrast dark theme for readability.
 
 ## Verification checklist
@@ -57,7 +80,12 @@ Before commit/deploy:
 s = open('/opt/data/hermes-pages/<page>.html', encoding='utf-8').read()
 assert '<expected opening match>' in s
 assert '<expected PT kickoff>' in s
-assert s.count('<tr data-stage=') == <expected_match_count>
+# Use whichever structure the page uses:
+assert s.count('<tr data-stage=') == <expected_match_count> or s.count('class="game-card"') == <expected_match_count>
+# If grouped by day:
+assert 'class="day-group"' in s
+# If enriched with market lines:
+assert s.count('class="kalshi"') in (0, <expected_match_count>)
 ```
 
 If the page includes inline JavaScript, extract the functional script and run a syntax check before commit:
