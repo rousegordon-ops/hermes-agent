@@ -116,6 +116,10 @@ import urllib.request
 url = 'https://hermes-pages-d55.pages.dev/<page>'
 html = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'}), timeout=40).read().decode('utf-8','replace')
 assert '<expected opening match>' in html
-assert html.count('<tr data-stage=') == <expected_match_count>
-assert 'id="suggestions"' in html  # if regex dropdown was requested
+assert html.count('<tr data-stage=') == <expected_match_count> or html.count('class="game-card"') == <expected_match_count>
+# If the page uses separate regex fields:
+assert 'id="teamQ"' in html and 'id="venueQ"' in html
+# If grouped by day or enriched with lines:
+assert html.count('class="day-group"') >= 1
+assert html.count('class="kalshi"') in (0, <expected_match_count>)
 ```
