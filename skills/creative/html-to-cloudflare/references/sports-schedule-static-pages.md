@@ -56,11 +56,47 @@ dt_pt = datetime.fromisoformat(utc.replace('Z', '+00:00')).astimezone(pt)
 
 For June/July events, the actual abbreviation is PDT. If the user asks for PST/Pacific, label the main UI as `PT` for readability and optionally note that summer dates are PDT.
 
+## Group / pool enrichment
+
+For tournament schedules with fixed groups/pools, add group data as a first-class facet rather than hiding it in generic stage text.
+
+For FIFA World Cup 2026, Olympics.com listed the groups clearly:
+- Group A — Mexico, South Africa, Czechia, South Korea
+- Group B — Bosnia-Herzegovina, Canada, Qatar, Switzerland
+- Group C — Brazil, Haiti, Morocco, Scotland
+- Group D — Australia, Paraguay, Türkiye, United States
+- Group E — Curaçao, Ecuador, Germany, Ivory Coast
+- Group F — Japan, Netherlands, Sweden, Tunisia
+- Group G — Belgium, Egypt, Iran, New Zealand
+- Group H — Spain, Cape Verde, Saudi Arabia, Uruguay
+- Group I — France, Senegal, Iraq, Norway
+- Group J — Argentina, Algeria, Austria, Jordan
+- Group K — Portugal, Congo DR, Uzbekistan, Colombia
+- Group L — England, Croatia, Ghana, Panama
+
+Implementation pattern:
+- Create a `team_to_group` mapping from the group list and assign each group-stage match by splitting `match` on `vs`. Verify both teams resolve to the same group.
+- Add `data-group="Group X"` to each group-stage `.game-card`; use `data-group=""` for knockout placeholders so JS filtering stays simple.
+- Add a visible group pill next to `Group Stage`, e.g. `<span class="group-pill">Group A</span>Group Stage`.
+- Add a `Groups` section with one clickable card per group, showing all teams.
+- Add an `All groups` select in the sticky controls; group filtering must compose with team regex, venue regex, stage, and city filters.
+- Add the group to the card/search haystack so a broad text search can also find it if applicable.
+- Include the group source in the footer/source note.
+
+Verification additions:
+```python
+assert s.count('class="group-card"') == 12
+assert s.count('class="group-pill"') == 72  # World Cup group-stage matches
+assert '<select id="group">' in s and 'okGroup' in s
+assert 'Mexico · South Africa · Czechia · South Korea' in s
+```
+
 ## Page pattern
 
 Good structure for a standalone schedule page:
 - Hero with event name and clear timezone statement.
 - Stats: match count, host locations, opening date, final date.
+- For tournaments with groups/pools, show a dedicated groups section, a group dropdown, clickable group cards, and visible group labels on each group-stage game.
 - Prefer separate regex search fields when the data has natural facets, especially sports schedules:
   - `Team regex…` filters only team/match text and has a team/match suggestion dropdown.
   - `Venue regex…` filters only stadium/location text and has a stadium/location suggestion dropdown.
