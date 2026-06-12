@@ -110,16 +110,27 @@ for ev in data.get('events', []):
             print(c.get('homeAway'), c['team']['displayName'], c.get('score'), c.get('winner'))
 ```
 
-Patch only completed events, e.g. add a small `.score` badge under the match title. After editing, verify:
-- Score labels expected are present exactly once.
+Patch only completed events. For World Cup-style cards, use structured final-result markup rather than a plain text blob:
+- Add `class="game-card completed"` to completed games.
+- Completed-game cards should be compact: visible matchup, group/stage, and the final result only. Remove/hide kickoff time, venue/location, broadcaster, and betting/market lines unless Gordon explicitly asks to keep them.
+- Prefer `.result-card` rows with a highlighted `.winner` and dimmed `.loser`; do **not** strike through the losing team.
+- Preserve expected total event count (`class="game-card"`) exactly.
+
+If the page has started and should stay current, create a small updater script outside the repo (e.g. `/opt/data/scripts/update_wc_results.py`) that fetches the authoritative scoreboard, rewrites only newly completed cards, commits/pushes/deploys only when content changes, and verifies the canonical URL. Schedule it through the tournament window (e.g. every 30 minutes) rather than relying on client-side API calls from a static page.
+
+After editing, verify:
+- Score labels/result rows expected are present exactly once.
 - `class="game-card"` count is unchanged.
+- Completed cards no longer expose stale logistics/market lines.
 - Live canonical URL contains the scores after Wrangler deploy.
 
 ## Page pattern
 
-Good structure for a standalone schedule page:
-- Hero with event name and clear timezone statement.
-- Stats: match count, host locations, opening date, final date.
+Good structure for a standalone schedule/results page:
+- If Gordon wants a minimal utility page, avoid a bulky hero/stat block; a simple top-level title such as `<h1 class="page-title">2026 World Cup</h1>` plus a Today’s games card is enough.
+- Put a `Today’s games` card near the top, populated from existing embedded schedule data using the current Pacific date; keep it static-client-side and verify it does not break inline JS.
+- Label the main listing `Schedule & Results` once games have started.
+- Collapse large filter/reference sections (host locations, groups, stages) by default with native `<details><summary>…</summary>` arrows.
 - For tournaments with groups/pools, show a dedicated groups section, a group dropdown, clickable group cards, and visible group labels on each group-stage game.
 - Prefer separate regex search fields when the data has natural facets, especially sports schedules:
   - `Team regex…` filters only team/match text and has a team/match suggestion dropdown.

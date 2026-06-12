@@ -172,6 +172,7 @@ The script exports all gbrain pages to a temp dir, renders each to HTML, and com
 
 Pitfalls:
 - `--project-name hermes-pages-d55` fails with "Project not found"; use `hermes-pages`.
+- Do **not** use bare `npx --yes wrangler ...` on this host: current Wrangler v4 requires Node 22+, while the base `/usr/bin/node` may be v20 and will fail before deploying. Prefer `npx -y -p node@22 -p wrangler wrangler ...`. If that wrapper is unavailable and you must deploy from Node 20, pin the last working v3 line, e.g. `HOME=/opt/data/home npx --yes wrangler@3.114.17 pages deploy /opt/data/hermes-pages --project-name hermes-pages`.
 - Avoid `curl | python` verification patterns; security tooling may block or require approval. Fetch inside Python instead.
 - A successful deploy prints a preview URL, but Gordon's preferred public URL remains `https://hermes-pages-d55.pages.dev/`.
 
