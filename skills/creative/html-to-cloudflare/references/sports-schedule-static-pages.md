@@ -91,6 +91,30 @@ assert '<select id="group">' in s and 'okGroup' in s
 assert 'Mexico · South Africa · Czechia · South Korea' in s
 ```
 
+## Updating completed games / final scores
+
+For static sports schedule pages that already list future fixtures, do not guess scores from snippets. Query the page's authoritative/public schedule source when possible. For ESPN-backed soccer pages, the public scoreboard endpoint works well:
+
+```python
+import json, urllib.request
+url = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611'
+data = json.loads(urllib.request.urlopen(
+    urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'}), timeout=20
+).read())
+for ev in data.get('events', []):
+    comp = ev['competitions'][0]
+    status = comp['status']['type']
+    if status.get('completed'):
+        print(ev['id'], ev['name'], status.get('description'))
+        for c in comp['competitors']:
+            print(c.get('homeAway'), c['team']['displayName'], c.get('score'), c.get('winner'))
+```
+
+Patch only completed events, e.g. add a small `.score` badge under the match title. After editing, verify:
+- Score labels expected are present exactly once.
+- `class="game-card"` count is unchanged.
+- Live canonical URL contains the scores after Wrangler deploy.
+
 ## Page pattern
 
 Good structure for a standalone schedule page:
