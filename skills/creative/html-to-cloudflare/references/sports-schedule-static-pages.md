@@ -129,6 +129,8 @@ After editing, verify:
 Good structure for a standalone schedule/results page:
 - If Gordon wants a minimal utility page, avoid a bulky hero/stat block; a simple top-level title such as `<h1 class="page-title">2026 World Cup</h1>` plus a Today’s games card is enough.
 - Put a `Today’s games` card near the top, populated from existing embedded schedule data using the current Pacific date; keep it static-client-side and verify it does not break inline JS.
+  - If Gordon asks for today’s games to include “the same info” as the schedule cards below, render today entries by locating the matching underlying `.game-card` (via ESPN/game ID link) and copying its `innerHTML` into a `.today-schedule-game` wrapper. This avoids drift and automatically includes kickoff, matchup, group/stage, stadium/location, TV, Kalshi lines, or final-result markup as the source card changes.
+  - Add CSS so `.today-schedule-game` mirrors the `.game-card` grid columns, and make the mobile media query apply to both `.game-card` and `.today-schedule-game`.
 - Label the main listing `Schedule & Results` once games have started.
 - Collapse large filter/reference sections (host locations, groups, stages) by default with native `<details><summary>…</summary>` arrows.
 - For tournaments with groups/pools, show a dedicated groups section, a group dropdown, clickable group cards, and visible group labels on each group-stage game.
@@ -194,3 +196,5 @@ assert 'id="teamQ"' in html and 'id="venueQ"' in html
 assert html.count('class="day-group"') >= 1
 assert html.count('class="kalshi"') in (0, <expected_match_count>)
 ```
+
+If an important feature is client-rendered (for example the `Today’s games` card), verify the rendered DOM too, not just raw HTML. A simple pattern is to install/use `jsdom` in `/tmp`, execute the live page script, and count the expected rendered subfields (date/time, match, place, TV, Kalshi/result) inside `#todayGames`. Avoid relying on browser automation if local Chrome is unavailable; raw fetch plus `jsdom` is sufficient for this class of static page.
