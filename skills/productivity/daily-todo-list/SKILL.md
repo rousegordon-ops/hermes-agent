@@ -50,6 +50,9 @@ Gordon says: `todo add <item>` → agent runs the add command **and replies with
 ### Listing items
 Gordon says: `todo list` → agent runs the list command and replies with the full list (numbered).
 
+### Deleting / clearing items
+Only report a todo list deletion/clear if something was actually deleted. If the list was already empty or no item matched, do not send a deletion report.
+
 ## Pitfalls
 
 ### Cron schedule is UTC

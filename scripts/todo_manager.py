@@ -87,8 +87,10 @@ def main() -> None:
         return
 
     elif cmd == "clear":
-        save([])
-        print("List cleared.")
+        items = load()
+        if items:
+            save([])
+            print("List cleared.")
         return
 
     elif cmd == "send_and_clear":
