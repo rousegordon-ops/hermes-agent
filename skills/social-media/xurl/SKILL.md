@@ -378,6 +378,18 @@ xurl --app staging /2/users/me             # one-off against staging
 6. Use JSON output directly — every response is already structured.
 7. Never paste `~/.xurl` contents back into the conversation.
 
+### Public-read fallback when `xurl` is unavailable
+
+If `xurl` is not installed or not authenticated and the task is only to read a public post/article (not write/engage), do not block immediately. Try public extraction first:
+
+1. `web_extract` the X URL directly; public pages often expose title, author, timestamp, embedded article card title/description, and the post text.
+2. Also try X oEmbed for metadata without credentials:
+   `https://publish.twitter.com/oembed?url=https://twitter.com/<handle>/status/<id>`
+3. If the post is just a `t.co` link, resolve it with a safe HTTP request and record the final URL, but do not echo hidden tokens or auth headers. Some X Articles resolve to `/i/article/<id>` and may not be extractable without browser/auth; use the public card metadata from the post when available.
+4. Use `web_search` for the post ID and/or quoted article title as a backup source of snippets.
+
+This fallback is appropriate for tasks like saving an X-linked article to a reading list. It is not a substitute for authenticated actions such as replying, liking, bookmarking, DMs, or timeline reads.
+
 ---
 
 ## Troubleshooting

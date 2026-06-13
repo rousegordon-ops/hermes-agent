@@ -255,7 +255,7 @@ Gordon uses short commands to maintain lightweight list pages on `hermes-pages`:
 
 For each product item, save a product image locally under `/opt/data/hermes-pages/assets/`, keep the original/specified product URL as the card link, add useful metadata when available, commit, deploy with Wrangler, and verify the canonical URL contains the new item and image. On the page itself, use the exact preferred command phrase for that list (e.g. `add light <URL>`, `add showerhead <URL or product name>`). For provider quirks and list-specific metadata fields, see `references/personal-utility-product-lists.md`.
 
-For `add article <URL>`, fetch/extract the article, add a JS object to `window.__AI_SW_ENGINEERING_ARTICLES` with `title`, `url`, `source`, optional `author`, optional `published`, `added`, `summary`, and optional `note`. Keep the article URL as the outbound link. No image is required. Commit, deploy with Wrangler, and verify the canonical URL contains the new article title/link.
+For `add article <URL>`, fetch/extract the article, add a JS object to `window.__AI_SW_ENGINEERING_ARTICLES` with `title`, `url`, `source`, optional `author`, optional `published`, `added`, `summary`, and optional `note`. Keep the article URL as the outbound link. No image is required. Commit, deploy with Wrangler, and verify the canonical URL contains the new article title/link. For X/Twitter-linked articles and the exact page contract, see `references/ai-software-engineering-article-list.md`.
 
 For each new URL:
 1. Fetch/inspect the product page for title, price/specs, and candidate images (Open Graph/product image first; otherwise choose a clear product photo).
