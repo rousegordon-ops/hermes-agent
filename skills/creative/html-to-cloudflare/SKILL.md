@@ -247,12 +247,15 @@ When Gordon asks to "move" an item between sections, the move is purely a nav ed
 
 ### Personal utility list pages
 
-Gordon uses short commands to maintain lightweight product-list pages on `hermes-pages`:
+Gordon uses short commands to maintain lightweight list pages on `hermes-pages`:
 - `add light <URL>` → Bathroom Vanity Lights at `/opt/data/hermes-pages/bathroom-vanity-lights.html` (`https://hermes-pages-d55.pages.dev/bathroom-vanity-lights`)
 - `add gimbal <URL>` → Recessed Gimbal Lights at `/opt/data/hermes-pages/recessed-gimbal-lights.html` (`https://hermes-pages-d55.pages.dev/recessed-gimbal-lights`)
 - `add showerhead <URL or product name>` → **Rain Shower Heads** at `/opt/data/hermes-pages/showerheads.html` (`https://hermes-pages-d55.pages.dev/showerheads`)
+- `add article <URL>` → **AI Software Engineering Articles** at `/opt/data/hermes-pages/ai-sw-engineering-articles.html` (`https://hermes-pages-d55.pages.dev/ai-sw-engineering-articles`)
 
-For each item, save a product image locally under `/opt/data/hermes-pages/assets/`, keep the original/specified product URL as the card link, add useful metadata when available, commit, deploy with Wrangler, and verify the canonical URL contains the new item and image. On the page itself, use the exact preferred command phrase for that list (e.g. `add light <URL>`, `add showerhead <URL or product name>`). For provider quirks and list-specific metadata fields, see `references/personal-utility-product-lists.md`.
+For each product item, save a product image locally under `/opt/data/hermes-pages/assets/`, keep the original/specified product URL as the card link, add useful metadata when available, commit, deploy with Wrangler, and verify the canonical URL contains the new item and image. On the page itself, use the exact preferred command phrase for that list (e.g. `add light <URL>`, `add showerhead <URL or product name>`). For provider quirks and list-specific metadata fields, see `references/personal-utility-product-lists.md`.
+
+For `add article <URL>`, fetch/extract the article, add a JS object to `window.__AI_SW_ENGINEERING_ARTICLES` with `title`, `url`, `source`, optional `author`, optional `published`, `added`, `summary`, and optional `note`. Keep the article URL as the outbound link. No image is required. Commit, deploy with Wrangler, and verify the canonical URL contains the new article title/link.
 
 For each new URL:
 1. Fetch/inspect the product page for title, price/specs, and candidate images (Open Graph/product image first; otherwise choose a clear product photo).
