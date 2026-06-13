@@ -116,7 +116,7 @@ Patch only completed events. For World Cup-style cards, use structured final-res
 - Prefer `.result-card` rows with a highlighted `.winner` and dimmed `.loser`; do **not** strike through the losing team.
 - Preserve expected total event count (`class="game-card"`) exactly.
 
-If the page has started and should stay current, create a small updater script outside the repo (e.g. `/opt/data/scripts/update_wc_results.py`) that fetches the authoritative scoreboard, rewrites only newly completed cards, commits/pushes/deploys only when content changes, and verifies the canonical URL. Schedule it through the tournament window (e.g. every 30 minutes) rather than relying on client-side API calls from a static page.
+If the page has started and should stay current, create a small updater script outside the repo (e.g. `/opt/data/scripts/update_wc_results.py`) that fetches the authoritative scoreboard, rewrites only newly completed cards, refreshes all Kalshi odds for still-scheduled games with currently open markets, commits/pushes/deploys only when content changes, and verifies the canonical URL. Schedule it through the tournament window (e.g. every 30 minutes) rather than relying on client-side API calls from a static page. Gordon explicitly wants Kalshi odds refreshed whenever WC results are updated.
 
 After editing, verify:
 - Score labels/result rows expected are present exactly once.
