@@ -91,7 +91,7 @@ assert '<select id="group">' in s and 'okGroup' in s
 assert 'Mexico · South Africa · Czechia · South Korea' in s
 ```
 
-## Updating completed games / final scores
+## Updating completed and in-progress games / scores
 
 For static sports schedule pages that already list future fixtures, do not guess scores from snippets. Query the page's authoritative/public schedule source when possible. For ESPN-backed soccer pages, the public scoreboard endpoint works well:
 
@@ -110,18 +110,26 @@ for ev in data.get('events', []):
             print(c.get('homeAway'), c['team']['displayName'], c.get('score'), c.get('winner'))
 ```
 
-Patch only completed events. For World Cup-style cards, use structured final-result markup rather than a plain text blob:
-- Add `class="game-card completed"` to completed games.
+Patch completed and in-progress events from the authoritative status data:
+- For completed games, add `class="game-card completed"` and use structured final-result markup rather than a plain text blob.
 - Completed-game cards should be compact: visible matchup, group/stage, and the final result only. Remove/hide kickoff time, venue/location, broadcaster, and betting/market lines unless Gordon explicitly asks to keep them.
 - Prefer `.result-card` rows with a highlighted `.winner` and dimmed `.loser`; do **not** strike through the losing team.
+- For in-progress games, add an `in-progress` class, a high-contrast live badge such as `LIVE · 16'`, and a `.result-card` with current scores for both teams. Keep the scheduled kickoff/location/TV/line fields unless the user asks to simplify live cards.
+- Put live-score markup inside the `.match` block when the top “today’s games” card copies schedule-card `innerHTML`; otherwise the copied card may show the live score in an awkward column or miss the status styling.
+- When mirroring canonical schedule cards into top cards, propagate both `completed` and `in-progress` status classes:
+  ```js
+  const statusClass = card.classList.contains('completed') ? ' completed' : (card.classList.contains('in-progress') ? ' in-progress' : '');
+  ```
 - Preserve expected total event count (`class="game-card"`) exactly.
 
-If the page has started and should stay current, create a small updater script outside the repo (e.g. `/opt/data/scripts/update_wc_results.py`) that fetches the authoritative scoreboard, rewrites only newly completed cards, refreshes all Kalshi odds for still-scheduled games with currently open markets, commits/pushes/deploys only when content changes, and verifies the canonical URL. Schedule it through the tournament window (e.g. every 30 minutes) rather than relying on client-side API calls from a static page. Gordon explicitly wants Kalshi odds refreshed whenever WC results are updated.
+If the page has started and should stay current, create a small updater script outside the repo (e.g. `/opt/data/scripts/update_wc_results.py`) that fetches the authoritative scoreboard, rewrites newly completed cards and currently in-progress cards, refreshes all Kalshi odds for still-scheduled games with currently open markets, commits/pushes/deploys only when content changes, and verifies the canonical URL. Schedule it through the tournament window (e.g. every 30 minutes) rather than relying on client-side API calls from a static page. Gordon explicitly wants Kalshi odds refreshed whenever WC results are updated.
 
 After editing, verify:
 - Score labels/result rows expected are present exactly once.
 - `class="game-card"` count is unchanged.
 - Completed cards no longer expose stale logistics/market lines.
+- In-progress cards expose a live badge, both team names, and both current scores.
+- If the page has a top “today’s games” card that copies schedule-card HTML, run a rendered-DOM check (jsdom is fine when Chrome is unavailable) and assert the today card contains the live badge/minute and score text.
 - Live canonical URL contains the scores after Wrangler deploy.
 
 ## Page pattern
