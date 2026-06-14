@@ -116,6 +116,7 @@ Patch completed and in-progress events from the authoritative status data:
 - Prefer `.result-card` rows with a highlighted `.winner` and dimmed `.loser`; do **not** strike through the losing team.
 - For in-progress games, add an `in-progress` class, a high-contrast live badge such as `LIVE · 16'`, and a `.result-card` with current scores for both teams. Keep the scheduled kickoff/location/TV/line fields unless the user asks to simplify live cards.
 - Put live-score markup inside the `.match` block when the top “today’s games” card copies schedule-card `innerHTML`; otherwise the copied card may show the live score in an awkward column or miss the status styling.
+- When rewriting an existing live `.match` block, do **not** use a generic non-greedy regex like `<div class="match">.*?</div>` because the result card contains nested `<div>` rows; that can leave duplicate score rows behind. Replace from the top-level `<div class="match">` through the next top-level sibling (`place`, `tv`, or `kalshi`) or use an HTML parser.
 - When mirroring canonical schedule cards into top cards, propagate both `completed` and `in-progress` status classes:
   ```js
   const statusClass = card.classList.contains('completed') ? ' completed' : (card.classList.contains('in-progress') ? ' in-progress' : '');
