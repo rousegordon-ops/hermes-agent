@@ -144,10 +144,11 @@ Good structure for a standalone schedule/results page:
 - Label the main listing `Schedule & Results` once games have started.
 - Collapse large filter/reference sections (host locations, groups, stages) by default with native `<details><summary>…</summary>` arrows.
 - For tournaments with groups/pools, show a dedicated groups section, a group dropdown, clickable group cards, and visible group labels on each group-stage game.
-- Prefer separate regex search fields when the data has natural facets, especially sports schedules:
+- Prefer separate search fields when the data has natural facets, especially sports schedules:
   - `Team regex…` filters only team/match text and has a team/match suggestion dropdown.
-  - `Venue regex…` filters only stadium/location text and has a stadium/location suggestion dropdown.
-  - Compile each input with `new RegExp(raw, 'i')`; show an inline invalid-regex error instead of throwing.
+  - `Venue search…` filters stadium/location text with **literal case-insensitive substring matching**, not regex. Gordon asked to remove the venue regex; typing `[` or `(` must not show an invalid-regex error or block results.
+  - Compile only the team input with `new RegExp(raw, 'i')`; show an inline invalid-regex error for team regex instead of throwing.
+  - Venue suggestions should use literal matching/highlighting (`toLowerCase().includes(...)`) against venue/location haystacks. Do not call `compileRegex()` or `updateSuggestions(..., regex)` for venue focus/input handlers.
   - Dropdowns should update while typing, highlight the matching text, and let clicks populate the escaped literal value.
   - Team suggestions should list teams only, not full matchups/games. If the team input uses regex matching against each suggestion's haystack, keep the suggestion haystack to the team name itself (not `extra: ev.match`), otherwise searching `Japan` can incorrectly suggest `Netherlands`, `Sweden`, etc. because those teams appear in `Netherlands vs Japan`, `Japan vs Sweden`, etc.
   - Filters must compose with each other and with city/stage chips.
@@ -201,8 +202,10 @@ url = 'https://hermes-pages-d55.pages.dev/<page>'
 html = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'}), timeout=40).read().decode('utf-8','replace')
 assert '<expected opening match>' in html
 assert html.count('<tr data-stage=') == <expected_match_count> or html.count('class="game-card"') == <expected_match_count>
-# If the page uses separate regex fields:
+# If the page uses separate team/venue fields:
 assert 'id="teamQ"' in html and 'id="venueQ"' in html
+assert 'Venue search' in html and 'Venue regex' not in html
+assert 'updateLiteralSuggestions(venueQ' in html
 # If grouped by day or enriched with lines:
 assert html.count('class="day-group"') >= 1
 assert html.count('class="kalshi"') in (0, <expected_match_count>)
