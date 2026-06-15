@@ -149,6 +149,7 @@ Good structure for a standalone schedule/results page:
   - `Venue regex…` filters only stadium/location text and has a stadium/location suggestion dropdown.
   - Compile each input with `new RegExp(raw, 'i')`; show an inline invalid-regex error instead of throwing.
   - Dropdowns should update while typing, highlight the matching text, and let clicks populate the escaped literal value.
+  - Team suggestions should list teams only, not full matchups/games. If the team input uses regex matching against each suggestion's haystack, keep the suggestion haystack to the team name itself (not `extra: ev.match`), otherwise searching `Japan` can incorrectly suggest `Netherlands`, `Sweden`, etc. because those teams appear in `Netherlands vs Japan`, `Japan vs Sweden`, etc.
   - Filters must compose with each other and with city/stage chips.
 - Filter chips for host locations and stages.
 - For long event lists, group games by day using separate visible day boxes, not a single table with ambiguous separator rows. Each day should be its own bordered section (`.day-group`) containing that day’s `.game-card` entries; the date header applies to the games inside the box. Do not add directional arrows once boxed.
