@@ -125,6 +125,8 @@ Patch completed and in-progress events from the authoritative status data:
 
 If the page has started and should stay current, create a small updater script outside the repo (e.g. `/opt/data/scripts/update_wc_results.py`) that fetches the authoritative scoreboard, rewrites newly completed cards and currently in-progress cards, refreshes all Kalshi odds for still-scheduled games with currently open markets, commits/pushes/deploys only when content changes, and verifies the canonical URL. Schedule it through the tournament window (e.g. every 30 minutes) rather than relying on client-side API calls from a static page. Gordon explicitly wants Kalshi odds refreshed whenever WC results are updated.
 
+When manually editing a page that an updater cron may touch, check `git log --oneline -- <page>` and `git status --short -- <page>` immediately before committing. If an updater commit lands while you are editing, re-read the live file and verify your intended changes are still in the working tree before deploy. Deploy from an isolated clone of the committed state when unrelated files are dirty so unrelated site work is not published.
+
 After editing, verify:
 - Score labels/result rows expected are present exactly once.
 - `class="game-card"` count is unchanged.
@@ -143,16 +145,13 @@ Good structure for a standalone schedule/results page:
   - Add CSS so `.today-schedule-game` mirrors the `.game-card` grid columns, and make the mobile media query apply to both `.game-card` and `.today-schedule-game`.
 - Label the main listing `Schedule & Results` once games have started.
 - Collapse large filter/reference sections (host locations, groups, stages) by default with native `<details><summary>…</summary>` arrows.
-- For tournaments with groups/pools, show a dedicated groups section, a group dropdown, clickable group cards, and visible group labels on each group-stage game.
-- Prefer separate search fields when the data has natural facets, especially sports schedules:
-  - `Team regex…` filters only team/match text and has a team/match suggestion dropdown.
-  - `Venue search…` filters stadium/location text with **literal case-insensitive substring matching**, not regex. Gordon asked to remove the venue regex; typing `[` or `(` must not show an invalid-regex error or block results.
-  - Compile only the team input with `new RegExp(raw, 'i')`; show an inline invalid-regex error for team regex instead of throwing.
-  - Venue suggestions should use literal matching/highlighting (`toLowerCase().includes(...)`) against venue/location haystacks. Do not call `compileRegex()` or `updateSuggestions(..., regex)` for venue focus/input handlers.
-  - Dropdowns should update while typing, highlight the matching text, and let clicks populate the escaped literal value.
-  - Team suggestions should list teams only, not full matchups/games. If the team input uses regex matching against each suggestion's haystack, keep the suggestion haystack to the team name itself (not `extra: ev.match`), otherwise searching `Japan` can incorrectly suggest `Netherlands`, `Sweden`, etc. because those teams appear in `Netherlands vs Japan`, `Japan vs Sweden`, etc.
-  - Filters must compose with each other and with city/stage chips.
-- Filter chips for host locations and stages.
+- For tournaments with groups/pools, show group data as a visible facet on every group-stage game and in standings. Avoid duplicate filter affordances: if there is a compact filter bar, do **not** also add host-location chips, group cards used as filters, and stage chips unless Gordon explicitly asks for those reference sections.
+- For World Cup-style utility pages, Gordon preferred the simplified filter UI after trying several variants:
+  - Add a clear `Filters` header.
+  - Under it, use dropdown controls for `Team`, `Group`, and `Venue`, plus a `Reset` button.
+  - Remove team regex/search boxes, stage filters, host-location chip filters, group-card filter sections, and stage-chip filter sections unless requested.
+  - Populate `Team` from the fixed group list, `Group` from groups, and `Venue` from unique `venue — location` pairs in schedule data.
+  - Filters should compose exactly: team matches either side of the matchup; group matches `data-group`; venue matches the schedule event's venue/location key. Reset should clear all three filters and show all games.
 - For long event lists, group games by day using separate visible day boxes, not a single table with ambiguous separator rows. Each day should be its own bordered section (`.day-group`) containing that day’s `.game-card` entries; the date header applies to the games inside the box. Do not add directional arrows once boxed.
 - Responsive cards: date/time, match, location, TV/streaming, and optional market/line data. Avoid wide tables for user-facing mobile schedules.
 - High-contrast dark theme for readability.
@@ -202,10 +201,11 @@ url = 'https://hermes-pages-d55.pages.dev/<page>'
 html = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'}), timeout=40).read().decode('utf-8','replace')
 assert '<expected opening match>' in html
 assert html.count('<tr data-stage=') == <expected_match_count> or html.count('class="game-card"') == <expected_match_count>
-# If the page uses separate team/venue fields:
-assert 'id="teamQ"' in html and 'id="venueQ"' in html
-assert 'Venue search' in html and 'Venue regex' not in html
-assert 'updateLiteralSuggestions(venueQ' in html
+# If the page uses the simplified World Cup filter bar:
+assert '<h2 id="filtersTitle">Filters</h2>' in html
+assert 'id="team"' in html and 'id="group"' in html and 'id="venue"' in html
+assert 'Team regex' not in html and 'id="stage"' not in html
+assert all(x not in html for x in ['Host locations','id="cityChips"','id="stageChips"','id="groupChips"'])
 # If grouped by day or enriched with lines:
 assert html.count('class="day-group"') >= 1
 assert html.count('class="kalshi"') in (0, <expected_match_count>)
