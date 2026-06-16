@@ -94,9 +94,29 @@ Moen showerheads:
 - Moen product-spec PDFs are often at `https://assets.moen.com/shared/docs/product-specifications/<series>sp.pdf` and extract well. For 6345 series, the PDF gave: single-function rainfall showerhead, 8" diameter, nonmetallic spray face/shell, brass swivel ball, EP models after 2018 = 1.75 GPM / 6.7 LPM max, WaterSense, ASME A112.18.1 / CSA B125.1.
 - Amazon pages for Moen may fetch with browser-like `urllib` even when `web_extract` fails. For ASIN `B07QPC1X4Z`, Amazon exposed a clean primary image `71E8NidfyIL._AC_SL1500_.jpg` that was better for the card than Moen lifestyle images with black bars. Amazon prices can localize to EUR in this environment; if using price snippets from search/eBay, label the source clearly.
 
+## Flush mount lights command semantics
+
+Primary current command:
+- `add flush mount <URL>`
+
+Canonical source and URL:
+- Source: `/opt/data/hermes-pages/flush-mount-lights.html`
+- URL: `https://hermes-pages-d55.pages.dev/flush-mount-lights`
+- Display title/H1/wiki link text: **Flush Mount Lights for Entry Foyer** / **Flush Mount Lights**
+
+This page is for flush-mount and semi-flush ceiling lights being considered for the Ventura entry foyer. For each new product, prioritize metadata that matters for an entry fixture:
+- Overall diameter/height and whether scale works for the foyer ceiling height
+- Finish and visual style from below
+- Integrated LED vs replaceable bulbs, bulb base, wattage/lumen output, CCT, CRI if available
+- Dimming compatibility
+- Price and installation notes
+- A concise entry-foyer fit note: welcoming light, glare, warmth, finish match, and first-impression look
+
+Add objects to `window.__FLUSH_MOUNTS` with fields: `name`, `url`, `img`, `price`, `dimensions`, `finish`, `lamping`, `output`, `dimming`, `specs`, and `fitNote` when available. Save images locally under `/opt/data/hermes-pages/assets/`, visually verify clear product images when possible, commit, deploy with Wrangler, and verify the canonical URL contains the new product and image filename.
+
 ## Multiple URLs in one command
 
-If Gordon says `add light <URL> <URL>`, `add gimbal <URL> <URL>`, or `add showerhead <URL/name> <URL/name>` (or more items), do **not** spawn parallel agents against the shared HTML file. Fetch metadata/images for each item serially, then patch the appropriate JS data array once, commit once, deploy once, and verify every new item/image on the canonical page.
+If Gordon says `add light <URL>`, `add gimbal <URL> <URL>`, `add showerhead <URL/name> <URL/name>`, or `add flush mount <URL> <URL>` (or more items), do **not** spawn parallel agents against the shared HTML file.
 
 ## Recessed gimbal provider notes
 
