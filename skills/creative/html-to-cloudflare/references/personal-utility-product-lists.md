@@ -114,6 +114,12 @@ This page is for flush-mount and semi-flush ceiling lights being considered for 
 
 Add objects to `window.__FLUSH_MOUNTS` with fields: `name`, `url`, `img`, `price`, `dimensions`, `finish`, `lamping`, `output`, `dimming`, `specs`, and `fitNote` when available. Save images locally under `/opt/data/hermes-pages/assets/`, visually verify clear product images when possible, commit, deploy with Wrangler, and verify the canonical URL contains the new product and image filename.
 
+### Flush mount provider notes
+
+- Pottery Barn may return `403` to direct Python/curl fetches even with browser-like headers. For `linen-drum-flushmount`, web search snippets exposed title, price `$99–$129`, and useful specs (iron construction, White or Flax linen shade, included diffuser, dimmer compatible, UL compliance). A Pinterest mirror for the same product exposed a clear product image URL (`i.pinimg.com/.../a94a20436b9ad897bb1b86c65c3b5e2e.jpg`) that downloaded cleanly and was visually verified as the correct linen drum flush mount. Keep the original Pottery Barn URL as the card link.
+- Vakkerlight product pages expose Shopify JSON at `/products/<handle>.js`. For `wooden-geometric-ceiling-light`, variant `44376442798321` is `Circle: ∅ 19.7″ x H 2.3″ / Wood color / Warm White`, price `$148`; description includes natural rubberwood, acrylic diffuser, integrated LED, 3000K warm white standard, 4000K/6000K by request, and external driver required for dimmable version because of the slim 2.3" profile. Use Shopify CDN product images and visually verify.
+- Mooijane product pages expose Shopify JSON at `/products/<handle>.js`. For `banno-ceiling-lamp`, variants include Model A/Model B, Gold/White or Black/White, Warm/Cool/Triac Warm Dimming; price range `$125–$220`; specs include brass/copper + acrylic, built-in LED, 110–240V, low profile sizes around 10.2/15/18.9 in. Shopify CDN product images download cleanly and can be visually verified.
+
 ## Multiple URLs in one command
 
 If Gordon says `add light <URL>`, `add gimbal <URL> <URL>`, `add showerhead <URL/name> <URL/name>`, or `add flush mount <URL> <URL>` (or more items), do **not** spawn parallel agents against the shared HTML file.
