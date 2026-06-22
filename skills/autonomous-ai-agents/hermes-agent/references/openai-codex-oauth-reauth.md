@@ -37,7 +37,49 @@ After Gordon completes device login:
 HERMES_HOME=/opt/data uv run /opt/data/repo/hermes auth list openai-codex
 ```
 
-Then make a small Codex-backed call or watch logs for no new `token_expired` warnings. If the gateway process caches credentials, restart the gateway/Railway service after auth refresh.
+Then make a small Codex-backed title-generation call:
+
+```bash
+HERMES_HOME=/opt/data uv run python3 - <<'PY'
+from agent.title_generator import generate_title
+print(generate_title('Please test title generation', 'I verified the auxiliary title generation path works.', timeout=60))
+PY
+```
+
+If the gateway process caches credentials, restart the gateway/Railway service after auth refresh.
+
+## Credential-pool refresh without device login
+
+On Gordon's Railway instance, `auth add openai-codex --type oauth --no-browser` can time out even if the user says they completed the browser flow. Before repeating device codes, try refreshing the existing pooled OAuth refresh tokens directly. Do not print token values.
+
+```bash
+HERMES_HOME=/opt/data uv run python3 - <<'PY'
+import json
+from pathlib import Path
+from datetime import datetime, timezone
+from hermes_cli.auth import refresh_codex_oauth_pure
+
+p = Path('/opt/data/auth.json')
+data = json.loads(p.read_text())
+creds = data.get('credential_pool', {}).get('openai-codex', [])
+for i, c in enumerate(creds, 1):
+    try:
+        updated = refresh_codex_oauth_pure(c.get('access_token', ''), c.get('refresh_token', ''), timeout_seconds=20)
+        c['access_token'] = updated['access_token']
+        c['refresh_token'] = updated.get('refresh_token', c.get('refresh_token', ''))
+        c['last_refresh'] = updated.get('last_refresh', datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'))
+        c['last_status'] = 'ok'
+        c['last_error_code'] = None
+        c['last_error_message'] = None
+        print(f'credential #{i}: refresh ok')
+    except Exception as e:
+        print(f'credential #{i}: refresh failed {type(e).__name__}: {str(e).splitlines()[0]} code={getattr(e, "code", None)} relogin={getattr(e, "relogin_required", None)}')
+data['updated_at'] = datetime.now(timezone.utc).isoformat()
+p.write_text(json.dumps(data, indent=2))
+PY
+```
+
+Then run the title-generation verification above. This refreshes `/opt/data/auth.json` `credential_pool.openai-codex[*]`; the older `_read_codex_tokens()` helper may report missing credentials because it reads the legacy `providers` shape, not the credential-pool shape.
 
 ## Pitfalls
 
