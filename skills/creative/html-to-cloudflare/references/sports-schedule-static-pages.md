@@ -152,12 +152,14 @@ Good structure for a standalone schedule/results page:
 - Label the main listing `Schedule & Results` once games have started.
 - Collapse large filter/reference sections (host locations, groups, stages) by default with native `<details><summary>…</summary>` arrows.
 - For tournaments with groups/pools, show group data as a visible facet on every group-stage game and in standings. Avoid duplicate filter affordances: if there is a compact filter bar, do **not** also add host-location chips, group cards used as filters, and stage chips unless Gordon explicitly asks for those reference sections.
-- For World Cup-style utility pages, Gordon preferred the simplified filter UI after trying several variants:
-  - Add a clear `Filters` header.
-  - Under it, use dropdown controls for `Team`, `Group`, and `Venue`, plus a `Reset` button.
-  - Remove team regex/search boxes, stage filters, host-location chip filters, group-card filter sections, and stage-chip filter sections unless requested.
-  - Populate `Team` from the fixed group list, `Group` from groups, and `Venue` from unique `venue — location` pairs in schedule data.
-  - Filters should compose exactly: team matches either side of the matchup; group matches `data-group`; venue matches the schedule event's venue/location key. Reset should clear all three filters and show all games.
+- For World Cup-style utility pages, keep filters as sparse as the current phase warrants. Earlier group-stage pages used Team/Group/Venue, but once the tournament moves toward knockout viewing Gordon may prefer removing redundant filters (e.g. Group, then Venue/Schedule) rather than preserving them for completeness. Do not treat `Group` as mandatory if the user says it is no longer useful.
+- For knockout-phase World Cup pages on mobile, prefer a tabbed bracket view over the full schedule list:
+  - Replace the bottom visible game list with `Knockout bracket` and round tabs (`R32`, `R16`, `QF`, `SF`, `3rd`, `Final`).
+  - Render one round at a time as cards; each card should show round/match number, localized date/time, matchup, venue/location, and a concise progression label such as `Winner → R16 Match 1`.
+  - Do not draw bracket connector lines on phone screens; text progression labels are more legible.
+  - Keep the original schedule cards in a hidden source container (e.g. `.schedule-source#schedule { display:none; }`) if existing JS helpers depend on `.game-card`, `rowGameId`, standings, live refresh, or selected-team knockout relabeling. Avoid deleting the source markup unless you also rewrite all dependent helpers.
+  - Keep Team focus if useful; when a team is selected, use the existing slot-resolution helpers to fill known direct slots and highlight matching bracket cards. Remove Venue/Schedule filters when they no longer make sense for bracket browsing.
+  - Verify raw HTML and rendered DOM: raw page has `#bracketTabs`, `#bracketGrid`, no obsolete select IDs, and no old list heading; jsdom should render 16 R32 cards by default and known labels like `South Africa vs Canada` when those slots are resolved.
 - For tournament standings or other secondary reference sections, prefer native collapsed `<details class="section ... collapsible">` when the page is getting long. Gordon asked for World Cup group standings to be collapsed by default. Use `<summary>` as the visible title, omit the `open` attribute, reuse `.collapsible` arrow styling, and verify with jsdom that the section starts closed, contains all tables, and opens on summary click.
 - For long event lists, group games by day using separate visible day boxes, not a single table with ambiguous separator rows. Each day should be its own bordered section (`.day-group`) containing that day’s `.game-card` entries; the date header applies to the games inside the box. Do not add directional arrows once boxed.
 - Responsive cards: date/time, match, location, TV/streaming, and optional market/line data. Avoid wide tables for user-facing mobile schedules.
