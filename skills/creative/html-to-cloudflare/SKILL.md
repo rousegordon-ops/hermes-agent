@@ -291,6 +291,8 @@ Pitfalls:
 
 For group standings that need Round of 32 clinch labels, follow `references/world-cup-standings-clinch-badges.md`: compute standings from completed result cards, enumerate all remaining match outcome scenarios instead of using naive independent max-points checks, require top-two safety across every scenario before showing `Clinched R32`, and put badges inside the Team cell to preserve mobile table width.
 
+When team-filtering World Cup knockout games, do not only replace the selected team's slot. If another direct slot in the same displayed matchup is already locked (e.g. `Group A 2nd Place` is known while filtering for Canada), replace that slot too. Preferred pattern: add a helper like `knownDirectSlotTeam(groupName, status)` that uses `scenarioStatusesForTeam(...)` and returns a team only when its status set is exactly one locked direct status (`1st in group` or `2nd in group`), then run `replaceKnownDirectSlots(label)` before displaying the filtered knockout label. Verify with a concrete completed group case such as Canada showing `South Africa vs Canada`, not `Group A 2nd Place vs Canada`.
+
 Each gets its own entry in the hub index.
 
 ## Wiki as HTML pages (md2html)
