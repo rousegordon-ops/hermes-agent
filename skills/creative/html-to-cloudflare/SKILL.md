@@ -295,6 +295,8 @@ For phone-friendly World Cup knockout brackets, follow `references/world-cup-kno
 
 When team-filtering World Cup knockout games, do not only replace the selected team's slot. If another direct slot in the same displayed matchup is already locked (e.g. `Group A 2nd Place` is known while filtering for Canada), replace that slot too. Preferred pattern: add a helper like `knownDirectSlotTeam(groupName, status)` that uses `scenarioStatusesForTeam(...)` and returns a team only when its status set is exactly one locked direct status (`1st in group` or `2nd in group`), then run `replaceKnownDirectSlots(label)` before displaying the filtered knockout label. Verify with a concrete completed group case such as Canada showing `South Africa vs Canada`, not `Group A 2nd Place vs Canada`.
 
+For “Next <team> game” cards after the group stage, do not search only for literal team names in `ev.match`; knockout rows often still contain placeholders (`Group D Winner`, `Group D 2nd Place`, third-place pool labels). Reuse the bracket-label path (`bracketMatchLabel(ev, selectedTeam)` / known direct slot helpers / exact `knownThirdPlaceSlots`) to detect whether a locked placeholder resolves to the team, and render the resolved label in the card. Verify with the live scenario that USA’s next game resolves from `Group D Winner vs Third Place Group B/E/F/I/J` to `USA vs Bosnia-Herzegovina` instead of showing “No upcoming USA games found.”
+
 Each gets its own entry in the hub index.
 
 ## Wiki as HTML pages (md2html)
