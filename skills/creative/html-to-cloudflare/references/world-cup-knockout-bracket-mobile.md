@@ -5,8 +5,9 @@ Use this when replacing/augmenting a long World Cup schedule list with a phone-f
 ## Mobile display pattern
 
 - Do **not** render a full tree on phones. Use round tabs/segmented controls (`R32`, `R16`, `QF`, `SF`, `3rd`, `Final`) and show one round at a time.
-- Use stacked cards per match: match number, localized kickoff, matchup, venue, and a concise advancement label such as `Winner → R16 Match 6`.
-- Hide the old long schedule list with CSS (`.schedule-source { display:none; }`) rather than deleting it if existing client-side code still depends on `.game-card` rows for standings, result parsing, known-slot inference, or refresh logic.
+- Use stacked cards per match: match number, localized kickoff, matchup, venue, optional Kalshi line, and a concise advancement label such as `Winner → R16 Match 6`.
+- Hide the old long schedule list with CSS (`.schedule-source { display:none; }`) rather than deleting it if existing client-side code still depends on `.game-card` rows for standings, result parsing, known-slot inference, Kalshi line storage, or refresh logic.
+- If Kalshi prices are shown in bracket cards, keep the hidden schedule card as the canonical data holder and render the visible card by reading its `.kalshi` node (see `world-cup-kalshi-knockout-lines.md`). Do not maintain a second, divergent bracket-only Kalshi dataset.
 - Keep team focus separate from schedule filters. For a bracket view, a single `Team` select + `Reset` is usually enough; venue/date/group filters become confusing once the main visible unit is a bracket.
 
 ## Known-slot replacement rules
