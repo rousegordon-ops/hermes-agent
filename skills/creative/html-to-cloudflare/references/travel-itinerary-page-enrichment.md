@@ -30,12 +30,35 @@ Use this when Gordon asks to make hobby/travel itinerary wiki pages more interes
 - Verify downloaded assets by checking both `Content-Type` contains `image` and size is non-trivial (>10KB for photos).
 - Some plausible filenames from search results 404; use web search to find exact Commons `File:` titles, then use `Special:FilePath`.
 
+## Updating from uploaded itinerary PDFs
+
+When Gordon uploads a travel itinerary PDF and asks to update an existing travel page, proceed without asking what to do if the requested target page is clear from the conversation. Extract the PDF locally, merge the durable itinerary details into the hand-authored HTML, and keep the page public by default unless he explicitly requests privacy.
+
+Recommended extraction fallback when system Python lacks `pip`/PyMuPDF:
+
+```bash
+uv run --with pymupdf python - <<'PY'
+import fitz, pathlib
+p = pathlib.Path('/opt/data/cache/documents/<uploaded-file>.pdf')
+doc = fitz.open(p)
+for i, page in enumerate(doc, 1):
+    print(f'\n--- PAGE {i} ---')
+    print(page.get_text('text'))
+PY
+```
+
+Merge style:
+- Preserve the existing page structure and visual design; patch specific day cards / planning links rather than regenerating the whole page.
+- Add useful logistics, reservations, meal plans, activity options, and watch notes from the PDF.
+- Redact booking/reference/confirmation identifiers from public pages. Do not include strings like `Reservation ID`, `Booking #`, `Ref #`, train/car/hotel confirmation numbers, or flight booking references; keep non-sensitive details like flight numbers, times, lodging names/addresses, reservation status, payment status, and cancellation windows.
+- Verify the actual HTML file and the live page do not contain those sensitive identifiers before replying.
+
 ## Verification checklist
 
 Before commit:
 - Assert public/default pages do **not** contain `wiki_auth` or `/wiki/login?dst=`; if Gordon explicitly requested a private page, assert the auth guard is present instead.
-- Assert public/default pages do not expose booking/reservation confirmation references or other sensitive identifiers.
-- Assert new section markers exist (`Trip mood board`, `Route at a glance`, etc.).
+- Assert public/default pages do not expose booking/reservation confirmation references or other sensitive identifiers. For PDF-derived itinerary updates, explicitly grep for known IDs from the PDF plus generic labels like `Reservation ID`, `Booking #`, and `Ref #`.
+- Assert new section markers or inserted itinerary details exist (`Trip mood board`, `Route at a glance`, new restaurant/activity names, etc.).
 - Assert each local asset exists and has nonzero/non-trivial size.
 - Run `git diff --check`.
 
