@@ -22,6 +22,8 @@ Gordon's daily LLM usage report — sends request metrics to Telegram at 6 AM PT
 - Max Req / 5H Window (24h)
 - Max Req / 5H Window (30d)
 
+For one-off estimates of switching Hermes from an OAuth/subscription model to a metered provider, use `references/payg-model-cost-estimation.md`: combine `/opt/data/request-log.jsonl` API-call run rates with current provider token pricing and a realistic input-token-per-call range.
+
 ## Components
 
 ### `/opt/hermes/scripts/cost_report.py`
