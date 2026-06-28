@@ -12,7 +12,7 @@ Use this when adding Kalshi prices to World Cup knockout games whose visible bra
    ```python
    url = 'https://external-api.kalshi.com/trade-api/v2/markets?status=open&limit=100&series_ticker=KXWCGAME'
    ```
-2. Group by `event_ticker`; each event usually has three markets: Team A, Tie, Team B.
+2. Group by `event_ticker`; each event usually has three markets: Team A, regulation-time draw, Team B. For knockout games, do not render this as plain “Tie”; label it `90-min draw` because Kalshi settles on regulation time even though the match eventually has an extra-time/penalty winner.
 3. Parse `title` with `(.+?)\s+vs\s+(.+?)\s+Winner\?` to identify the concrete matchup.
 4. Normalize Kalshi `yes_sub_title` before display/matching:
    - Strip leading `Reg Time: ` when present.
@@ -22,7 +22,7 @@ Use this when adding Kalshi prices to World Cup knockout games whose visible bra
 5. Use ESPN game IDs as the durable join key for the page. Maintain an explicit `gameId -> concrete matchup` map for knockout cards that are posted on Kalshi but still placeholder-labeled in schedule data.
 6. Write the line onto the hidden canonical schedule card as:
    ```html
-   <div class="kalshi">Kalshi: Team A 57–58¢ · Tie 26–27¢ · Team B 17–18¢</div>
+   <div class="kalshi">Kalshi: Team A 57–58¢ · 90-min draw 26–27¢ · Team B 17–18¢</div>
    ```
 7. Render bracket-card lines by reading from the schedule card, not by maintaining a second Kalshi dataset:
    ```js
