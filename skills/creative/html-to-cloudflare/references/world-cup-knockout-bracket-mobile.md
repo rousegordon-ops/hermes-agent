@@ -16,16 +16,25 @@ Use this when replacing/augmenting a long World Cup schedule list with a phone-f
 ## Known-slot replacement rules
 
 - Direct slots can be filled when locked: `Group X Winner` or `Group X 2nd Place`.
-- Do **not** substitute a selected team into every compatible third-place placeholder (e.g. `Third Place Group B/E/F/I/J`). The third-place allocation depends on FIFA's cross-group allocation table; naive compatibility makes one team appear in multiple R32 matches.
+- Do **not** substitute a selected team into every compatible third-place placeholder (e.g. `Third Place Group B/E/F/I/J`). The third-place allocation depends on FIFA's cross-group allocation table; naive compatibility makes one team appear in multiple games.
 - Only replace a third-place placeholder when an authoritative bracket/source has assigned that exact match. Keep a `knownThirdPlaceSlots` map keyed by ESPN game ID or match number, e.g. `760494 -> Bosnia-Herzegovina` for USA's R32 match once the source says Match 81 is USA vs Bosnia-Herzegovina.
 - For selected-team filtering/highlighting, only place the team into the bracket when its direct slot is locked (`statuses.size === 1` and status is `1st in group` or `2nd in group`). Third-place pool teams should not be highlighted into a match unless the exact slot is known.
+- For post-R32 rounds, resolve placeholders such as `Round of 32 1 Winner` from the hidden canonical schedule cards once those source games are completed. Preferred pattern: `completedWinnerForEvent(ev)` reads `.game-card.completed .result-row.winner .result-team`, then `replaceKnownPriorWinners(label)` iterates `scheduleData`, uses `outgoingKnockoutRefs(sourceEv)`, and replaces matching winner refs in R16/QF/SF/Final labels. Do this in the visible bracket-label path (`bracketMatchLabel`) so top cards, team filtering, and live refreshes reuse the same resolved labels instead of maintaining a second dataset.
 
 ## Verification
 
 - Run `node --check` on extracted inline JS.
 - Use jsdom to render the page and assert the bracket card count for the active round (`R32` should be 16), tab labels exist, and the expected known match appears.
+- If `npx -p jsdom node /tmp/test.js` cannot resolve `jsdom` because the script is outside the temporary package path, create a temp npm project, install jsdom there, copy the probe into that directory, and run it from there:
+  ```bash
+  rm -rf /tmp/wctest && mkdir -p /tmp/wctest
+  cd /tmp/wctest && npm init -y >/dev/null && npm install jsdom@24 >/dev/null
+  cp /tmp/test-wc-r16.js /tmp/wctest/test-wc-r16.js
+  node /tmp/wctest/test-wc-r16.js
+  ```
 - Regression checks:
   - Selecting a third-place team whose exact slot is **not** known should not create multiple fake R32 appearances.
   - Selecting a locked direct-slot team (e.g. Canada as Group B 2nd) should still show one highlighted known match.
   - Selecting an explicitly mapped third-place team (e.g. Bosnia-Herzegovina after source assignment) should show one highlighted match.
+  - Simulate a completed R32 source card and assert R16 resolves only known winners (e.g. `Canada vs Round of 32 3 Winner` while Match 3 is unknown; `Canada vs Germany` after Match 3 is completed). Do not require both sides to resolve unless both source games are completed.
 - Verify the canonical Cloudflare URL after Wrangler deploy; Direct Upload means git push alone is not enough.
