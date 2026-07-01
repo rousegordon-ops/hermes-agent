@@ -261,6 +261,15 @@ All commands return JSON. Parse with `jq` or read directly. Key fields:
 4. **Calendar times must include timezone** — always use ISO 8601 with offset (e.g., `2026-03-01T10:00:00-06:00`) or UTC (`Z`).
 5. **Respect rate limits** — avoid rapid-fire sequential API calls. Batch reads when possible.
 
+## Calendar fallback when OAuth is unavailable
+
+If the user asks to “put something on calendar” but Google Workspace auth is unavailable (`NOT_AUTHENTICATED`) or direct event creation cannot be completed, do **not** silently skip it. Create a standards-compliant `.ics` file as an importable fallback and deliver it with `MEDIA:/absolute/path/file.ics`.
+
+- Use `TZID` for the event’s local timezone when known (e.g. `Europe/London` for London itinerary items).
+- Include a stable `UID`, `DTSTAMP`, `DTSTART`, `DTEND`, `SUMMARY`, `LOCATION` when known, and concise `DESCRIPTION`.
+- Save the file in `/tmp/` for delivery unless the user explicitly wants it published or linked from a site; do not add one-off calendar files to public static assets by default.
+- Tell the user direct Google Calendar creation was blocked by auth and that the `.ics` can be imported.
+
 ## Troubleshooting
 
 | Problem | Fix |
