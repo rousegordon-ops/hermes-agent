@@ -19,7 +19,7 @@ Use this when adding Kalshi prices to World Cup knockout games whose visible bra
    - Normalize `USA` ↔ `United States`.
    - Normalize `Bosnia and Herzegovina` ↔ `Bosnia-Herzegovina`.
    - Preserve user-facing short labels (`USA`, `Bosnia-Herzegovina`) in the rendered line.
-5. Use ESPN game IDs as the durable join key for the page. Maintain an explicit `gameId -> concrete matchup` map for knockout cards that are posted on Kalshi but still placeholder-labeled in schedule data.
+5. Use ESPN game IDs as the durable join key for the page. Maintain an explicit `gameId -> concrete matchup` map for knockout cards that are posted on Kalshi but still placeholder-labeled in schedule data. This applies beyond R32: when R16 markets post before the source page labels resolve, add those R16 game IDs to `/opt/data/scripts/update_wc_results.py`'s knockout override map as well, then run the updater so future hourly refreshes do not revert to `not posted yet`.
 6. Write the line onto the hidden canonical schedule card as:
    ```html
    <div class="kalshi">Kalshi: Team A 57–58¢ · Tie 26–27¢ · Team B 17–18¢</div>
