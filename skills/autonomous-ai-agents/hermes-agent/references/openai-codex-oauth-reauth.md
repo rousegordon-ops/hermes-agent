@@ -48,6 +48,52 @@ PY
 
 If the gateway process caches credentials, restart the gateway/Railway service after auth refresh.
 
+## Prefer main-provider inheritance for auxiliary tasks
+
+If the main chat path is working but auxiliary tasks fail with `Auxiliary title generation failed: HTTP 401 ... token_expired`, first check whether `auxiliary.<task>.provider` is pinned to `codex` / `openai-codex`. A pinned auxiliary provider can use a stale OAuth path even while the main chat route works.
+
+Gordon prefers the reliable main chat model/provider to be used for auxiliary functions too. On his Railway instance, set auxiliary tasks to `auto` with blank model/base_url/api_key so `agent.auxiliary_client._resolve_auto()` tries the configured main provider/model first:
+
+```bash
+HERMES_HOME=/opt/data uv run python3 - <<'PY'
+from pathlib import Path
+import yaml
+p = Path('/opt/data/config.yaml')
+data = yaml.safe_load(p.read_text())
+aux = data.setdefault('auxiliary', {})
+for task in ['vision','web_extract','compression','session_search','skills_hub','approval','mcp','title_generation']:
+    cfg = aux.setdefault(task, {})
+    cfg['provider'] = 'auto'
+    cfg['model'] = ''
+    cfg['base_url'] = ''
+    cfg['api_key'] = ''
+p.write_text(yaml.safe_dump(data, sort_keys=False))
+PY
+```
+
+Verify routing without printing secrets:
+
+```bash
+HERMES_HOME=/opt/data uv run python3 - <<'PY'
+from agent.auxiliary_client import _resolve_task_provider_model, resolve_provider_client
+for task in ['title_generation','compression','session_search','vision']:
+    provider, model, base_url, api_key, api_mode = _resolve_task_provider_model(task=task)
+    client, resolved = resolve_provider_client(provider, model, is_vision=(task == 'vision'))
+    print(task, 'route=', provider, 'resolved=', resolved)
+PY
+```
+
+Then test title generation:
+
+```bash
+HERMES_HOME=/opt/data uv run python3 - <<'PY'
+from agent.title_generator import generate_title
+print(generate_title('Test title generation', 'Auxiliary title generation should use the main provider path.', timeout=60))
+PY
+```
+
+Only re-auth Codex OAuth if the main provider itself is also Codex OAuth and still returns 401 after auxiliary config inherits the main route.
+
 ## Credential-pool refresh without device login
 
 On Gordon's Railway instance, `auth add openai-codex --type oauth --no-browser` can time out even if the user says they completed the browser flow. Before repeating device codes, try refreshing the existing pooled OAuth refresh tokens directly. Do not print token values.
