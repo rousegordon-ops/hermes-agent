@@ -12,13 +12,14 @@ Use this when Gordon asks to make hobby/travel itinerary wiki pages more interes
 - Add locally saved public-domain/Commons-style images under a topic folder such as:
   - `/opt/data/hermes-pages/wiki/assets/uk-vacation-july-26/`
 - Prefer local assets over hotlinks so pages remain stable and Cloudflare serves everything from the same deploy.
-- Add visual structure beyond plain lists:
+- Add visual structure beyond plain lists when the page is meant to be inspirational or exploratory:
   - large hero image with readable gradient overlay
   - quick-facts cards
   - mood-board photo grid with captions
   - day-by-day cards/timeline
   - playful prompts/trip games
   - local illustrative SVG route map for road trips
+- When Gordon is actively using an itinerary as an on-trip utility, bias toward a lean top section: title → `Today's itinerary` → itinerary details. If he removes top cards, mood boards, or promotional/lede copy, keep tightening rather than replacing it with new decorative content. Put practical logistics directly into the relevant day, with clear labels like `Train to Paddington`, and keep exact times only when known; use duration estimates only when they are sourced/previously verified.
 - Preserve substantive itinerary details already present in the page.
 - For public pages, remove/redact sensitive booking IDs, reservation references, confirmation numbers, payment references, tokens, and credentials from user-visible HTML. Keep only non-sensitive logistics such as flight numbers, lodging names, addresses, check-in/check-out times, and whether a booking/payment is confirmed.
 
