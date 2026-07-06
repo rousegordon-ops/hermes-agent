@@ -6,6 +6,10 @@ Use this when adding Kalshi prices to World Cup knockout games whose visible bra
 
 `/opt/data/scripts/update_wc_results.py` refreshes Kalshi lines by parsing the visible schedule-card matchup and matching it to Kalshi market titles. That works for concrete matchups such as `Croatia vs Ghana`, but not for knockout cards whose HTML still says `Group A 2nd Place vs Group B 2nd Place` while Kalshi has already posted `South Africa vs Canada Winner?`.
 
+Two recurring failure modes:
+- Missing `gameId -> concrete matchup` override for newly resolved knockout games. Example: ESPN/page still showed `Round of 32 11 Winner vs Round of 32 12 Winner` while Kalshi had `Portugal vs Spain Winner?`; adding `760506: 'Portugal vs Spain'` fixed lookup.
+- Regex that only matches exact `class="game-card"` skips live cards such as `class="game-card in-progress"`. The Kalshi updater must match `game-card(?P<classes>[^"]*)`, skip only classes containing `completed`, and preserve `classes` when rewriting.
+
 ## Recommended pattern
 
 1. Fetch open Kalshi FIFA game markets:
