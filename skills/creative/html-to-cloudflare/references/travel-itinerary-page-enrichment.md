@@ -19,6 +19,8 @@ Use this when Gordon asks to make hobby/travel itinerary wiki pages more interes
   - day-by-day cards/timeline
   - playful prompts/trip games
   - local illustrative SVG route map for road trips
+- For scenic road-trip days where Gordon asks for “a separate page for the drive,” create a focused companion page under `/wiki/hobbies/` with a hero, route strategy cards, and stop cards in driving order. Use locally saved Commons/public images under the trip asset folder, concise “do/skip/time” guidance, and Google Maps links for each stop. Link the companion page from both the visible day card and any `Today's itinerary` JS data for that day, then add it to the Hobbies section of `wiki/index.html`.
+- For mountain/viewpoint stops on a transfer day, distinguish “photo pullout / scenic drive” from “full hike.” If a named ridge or mountain route is serious (e.g. Five Sisters of Kintail), explicitly say it is not the day’s objective and give a safe-pullout/5–15 minute version.
 - When Gordon is actively using an itinerary as an on-trip utility, bias toward a lean top section: title → `Today's itinerary` → itinerary details. If he removes top cards, mood boards, or promotional/lede copy, keep tightening rather than replacing it with new decorative content. Put practical logistics directly into the relevant day, with clear labels like `Train to Paddington`, and keep exact times only when known; use duration estimates only when they are sourced/previously verified.
 - When he gives live-trip corrections or additions (e.g. “we need to check in first,” “George Square is closed,” “the drive is 3 hours, not 1.5,” or friend recommendations), patch **both** the visible day card/timeline and any `Today's itinerary` JS data object. Grep for stale place names/times across the whole file before committing; hidden JS data can keep wrong guidance alive even after visible HTML is fixed.
 - If he says a recommendation is from a named friend/family member, label it explicitly in the page (e.g. `Grace rec`) and preserve that provenance in section headings/cards. Keep the user-facing itinerary terse and useful; put large recommendation banks in a separate clearly labeled section below the active day plan.
@@ -30,7 +32,7 @@ Use this when Gordon asks to make hobby/travel itinerary wiki pages more interes
 
 - `Special:FilePath/<filename>?width=1200` works well for downloading resized Commons images.
 - URL-encode filenames, including commas, spaces, parentheses, and apostrophes.
-- Wikimedia may return transient `429 Too many requests`; retry with a normal browser-ish User-Agent and exponential/backoff sleeps. Do not abandon after the first 429.
+- Wikimedia may return transient `429 Too many requests`; retry with a normal browser-ish User-Agent and exponential/backoff sleeps. If it returns a robot-policy 429, retry later with a descriptive contact-bearing User-Agent and/or switch to another Commons file for the same subject rather than hotlinking or abandoning the local asset.
 - Verify downloaded assets by checking both `Content-Type` contains `image` and size is non-trivial (>10KB for photos).
 - Some plausible filenames from search results 404; use web search to find exact Commons `File:` titles, then use `Special:FilePath`.
 
@@ -73,5 +75,5 @@ Publish:
   `npx -y -p node@22 -p wrangler wrangler pages deploy /opt/data/hermes-pages --project-name hermes-pages --commit-dirty=true`
 
 Live verification:
-- Fetch canonical page URLs and assert new section text and asset filenames are present.
+- Fetch canonical extensionless wiki page URLs (e.g. `/wiki/hobbies/page-name`, not only `/wiki/hobbies/page-name.html`) and assert new section text and asset filenames are present. Cloudflare Pages may redirect/normalize `.html` paths; extensionless is the user-facing URL.
 - Fetch image/SVG asset URLs and assert HTTP 200 plus image/SVG content type and expected content length.
