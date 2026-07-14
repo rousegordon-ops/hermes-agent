@@ -41,7 +41,7 @@ Match names may differ between sources. Normalize before matching:
 - `DR Congo` ↔ `Congo DR`
 - remove accents for names such as `Curaçao`.
 
-Only group-stage matchups have known teams; knockout placeholders should show `Kalshi: not posted yet` or similar until markets exist. Add a footer/source note that lines are a point-in-time snapshot, because static pages will stale unless regenerated.
+Only group-stage matchups have known teams at initial generation; knockout placeholders should show `Kalshi: not posted yet` or similar until markets exist. Once knockout teams resolve, the updater must map placeholder rows to real team matchups before matching Kalshi markets. For semifinals/final/third-place, prefer dynamic inference from completed semifinal result rows or ESPN scoreboard winner/loser data: final = semifinal winners, third-place = semifinal losers. Do not rely on hand-adding another override after each semifinal. Add a footer/source note that lines are a point-in-time snapshot, because static pages will stale unless regenerated.
 
 ## Timezone conversion
 
