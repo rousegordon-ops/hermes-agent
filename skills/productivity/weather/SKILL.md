@@ -27,7 +27,10 @@ Script path: `~/.hermes/skills/weather/scripts/weather_client.py`
 ## Commands
 
 ```bash
-WEATHER=~/.hermes/skills/weather/scripts/weather_client.py
+# Prefer the actual skill_dir path shown by skill_view; on hosted Hermes it is usually:
+WEATHER=/opt/data/skills/productivity/weather/scripts/weather_client.py
+# If running in a local user install instead, this may work:
+# WEATHER=~/.hermes/skills/weather/scripts/weather_client.py
 ```
 
 ### at — Weather for a named place (auto-geocodes)

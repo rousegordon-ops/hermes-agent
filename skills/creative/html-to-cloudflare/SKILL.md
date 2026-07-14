@@ -178,6 +178,7 @@ Pitfalls:
 - Before any Pages deploy, run `git status --short`. If there are unrelated dirty files, commit only the intended files and deploy from an isolated clean clone of that commit; `wrangler pages deploy /opt/data/hermes-pages --commit-dirty=true` uploads the whole current worktree, including unrelated edits.
 - A successful deploy prints a preview URL, but Gordon's preferred public URL remains `https://hermes-pages-d55.pages.dev/`.
 - Right after a Direct Upload deploy, the preview URL may show new content a few seconds before the canonical `hermes-pages-d55.pages.dev` URL. If canonical verification is stale but the preview URL is correct, retry canonical with a fresh `User-Agent`/`Cache-Control: no-cache` before assuming the deploy failed or redeploying.
+- For new standalone public pages, if the preview URL is correct but the canonical URL serves the root/homepage fallback (HTTP 200 with `Gordon Rouse — Pages`) instead of the new file, redeploy explicitly to production/main: `npx -y -p node@22 -p wrangler wrangler pages deploy <deploy-dir> --project-name hermes-pages --branch main --commit-dirty=true`, then verify the canonical URL again.
 
 ## Verify pipeline source before answering "is X generated from Y?"
 
