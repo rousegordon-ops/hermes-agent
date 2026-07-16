@@ -9,6 +9,7 @@ Use this when adding Kalshi prices to World Cup knockout games whose visible bra
 Two recurring failure modes:
 - Missing `gameId -> concrete matchup` override for newly resolved knockout games. Example: ESPN/page still showed `Round of 32 11 Winner vs Round of 32 12 Winner` while Kalshi had `Portugal vs Spain Winner?`; adding `760506: 'Portugal vs Spain'` fixed lookup.
 - Regex that only matches exact `class="game-card"` skips live cards such as `class="game-card in-progress"`. The Kalshi updater must match `game-card(?P<classes>[^"]*)`, skip only classes containing `completed`, and preserve `classes` when rewriting.
+- Do not infer completed semifinal winners/losers with a single regex like `<article class="game-card completed"...>.*?gameId/<id>.*?</article>`; it can start at an earlier completed card and cross article boundaries, producing bogus teams (e.g. `South Africa vs South Africa`). Iterate article cards first, find the one whose body contains the target ESPN `gameId`, then read winner/loser rows inside that body.
 
 ## Recommended pattern
 
