@@ -1,6 +1,6 @@
 # World Cup bracket default round updates
 
-Use when Gordon asks for shorthand like “Default to SF” on `/world-cup-2026`.
+Use when Gordon asks for shorthand like “Default to SF” or “Default to the final” on `/world-cup-2026`.
 
 ## Pattern
 
@@ -14,10 +14,12 @@ Use when Gordon asks for shorthand like “Default to SF” on `/world-cup-2026`
    - `QF` → `Quarterfinals`
    - `SF` → `Semifinals`
    - `3rd` → `3Rd Place Match`
-   - `Final` → `Final`
+   - `Final` / “the final” → `Final`
 4. Before committing, assert the new active markup and JS default are present and the old JS default is absent.
-5. If `/opt/data/hermes-pages` has unrelated dirty files, commit only `world-cup-2026.html`, then deploy from an isolated clean clone.
-6. Deploy with Wrangler Direct Upload and verify the canonical URL, not only the preview URL.
+5. Extract executable inline scripts (skip `<script type="application/json">`) and run `node --check`.
+6. If `/opt/data/hermes-pages` has unrelated dirty files, commit only `world-cup-2026.html`, then deploy from an isolated clean clone.
+7. Deploy with Wrangler Direct Upload and verify the canonical URL, not only the preview URL.
+8. If browser automation is unavailable because Chrome is not installed, use a temporary jsdom probe to verify DOM render behavior: active tab text, expected bracket-card count, expected teams, and any carried-through Kalshi line.
 
 ## Verification snippet
 
@@ -28,8 +30,10 @@ html = urllib.request.urlopen(
     urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0', 'Cache-Control':'no-cache'}),
     timeout=40,
 ).read().decode('utf-8','replace')
-assert '<button class="bracket-tab active" data-stage="Semifinals" type="button">SF</button>' in html
-assert "let activeBracketStage = 'Semifinals';" in html
+assert '<button class="bracket-tab active" data-stage="Final" type="button">Final</button>' in html
+assert "let activeBracketStage = 'Final';" in html
+# If this is after semifinal resolution and markets are posted, also verify the final line is preserved:
+assert 'Kalshi:' in html
 ```
 
 ## Pitfall
