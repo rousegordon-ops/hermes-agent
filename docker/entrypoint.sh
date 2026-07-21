@@ -49,6 +49,10 @@ if [ "$(id -u)" = "0" ]; then
         chown hermes:hermes "$HERMES_HOME/config.yaml" 2>/dev/null || true
         chmod 640 "$HERMES_HOME/config.yaml" 2>/dev/null || true
     fi
+    if [ -f "$HERMES_HOME/.env" ]; then
+        chown hermes:hermes "$HERMES_HOME/.env" 2>/dev/null || true
+        chmod 640 "$HERMES_HOME/.env" 2>/dev/null || true
+    fi
 
     echo "Dropping root privileges"
     exec gosu hermes "$0" "$@"
@@ -84,6 +88,8 @@ find "$HERMES_HOME" -maxdepth 2 \
     -mtime +14 -print -exec rm -rf {} + 2>/dev/null || true
 if [ -d "$HERMES_HOME/sessions" ]; then
     find "$HERMES_HOME/sessions" -maxdepth 1 -type f -name "*.json" \
+        -mtime +30 -delete 2>/dev/null || true
+    find "$HERMES_HOME/sessions" -maxdepth 1 -type f -name "*.jsonl" \
         -mtime +30 -delete 2>/dev/null || true
 fi
 
