@@ -53,6 +53,10 @@ if [ "$(id -u)" = "0" ]; then
         chown hermes:hermes "$HERMES_HOME/.env" 2>/dev/null || true
         chmod 640 "$HERMES_HOME/.env" 2>/dev/null || true
     fi
+    if [ -f "$HERMES_HOME/auth.json" ]; then
+        chown hermes:hermes "$HERMES_HOME/auth.json" 2>/dev/null || true
+        chmod 600 "$HERMES_HOME/auth.json" 2>/dev/null || true
+    fi
 
     echo "Dropping root privileges"
     exec gosu hermes "$0" "$@"
@@ -312,11 +316,11 @@ fi
 # attached late in the deploy sequence.
 #
 # Override via env vars in Railway dashboard:
-#   HERMES_ENFORCED_MODEL                 — model.default                          (default: copilot/gpt-5.5)
-#   HERMES_ENFORCED_PROVIDER              — model.provider                         (default: copilot)
+#   HERMES_ENFORCED_MODEL                 — model.default                          (default: openai-codex/gpt-5.5)
+#   HERMES_ENFORCED_PROVIDER              — model.provider                         (default: openai-codex)
 #   HERMES_ENFORCED_APPROVALS             — approvals.mode                         (default: smart)
 #   HERMES_ENFORCED_COMPRESSION_THRESHOLD — compression.threshold                  (default: 0.85)
-#   HERMES_ENFORCED_AUX_TITLE_PROVIDER    — auxiliary.title_generation.provider    (default: copilot)
+#   HERMES_ENFORCED_AUX_TITLE_PROVIDER    — auxiliary.title_generation.provider    (default: codex)
 #   HERMES_ENFORCED_AUX_TITLE_MODEL       — auxiliary.title_generation.model       (default: gpt-5.5)
 #
 # `hermes config set` is idempotent (no-op if already set). The `|| true`
@@ -324,12 +328,12 @@ fi
 HERMES_BIN="$INSTALL_DIR/.venv/bin/hermes"
 if [ -x "$HERMES_BIN" ]; then
     "$HERMES_BIN" config set model.default \
-        "${HERMES_ENFORCED_MODEL:-copilot/gpt-5.5}" >/dev/null 2>&1 \
-        && echo "[entrypoint] Enforced model.default = ${HERMES_ENFORCED_MODEL:-copilot/gpt-5.5}" \
+        "${HERMES_ENFORCED_MODEL:-openai-codex/gpt-5.5}" >/dev/null 2>&1 \
+        && echo "[entrypoint] Enforced model.default = ${HERMES_ENFORCED_MODEL:-openai-codex/gpt-5.5}" \
         || echo "[entrypoint] WARNING: failed to enforce model.default"
     "$HERMES_BIN" config set model.provider \
-        "${HERMES_ENFORCED_PROVIDER:-copilot}" >/dev/null 2>&1 \
-        && echo "[entrypoint] Enforced model.provider = ${HERMES_ENFORCED_PROVIDER:-copilot}" \
+        "${HERMES_ENFORCED_PROVIDER:-openai-codex}" >/dev/null 2>&1 \
+        && echo "[entrypoint] Enforced model.provider = ${HERMES_ENFORCED_PROVIDER:-openai-codex}" \
         || echo "[entrypoint] WARNING: failed to enforce model.provider"
     "$HERMES_BIN" config set approvals.mode \
         "${HERMES_ENFORCED_APPROVALS:-smart}" >/dev/null 2>&1 \
@@ -340,8 +344,8 @@ if [ -x "$HERMES_BIN" ]; then
         && echo "[entrypoint] Enforced compression.threshold = ${HERMES_ENFORCED_COMPRESSION_THRESHOLD:-0.85}" \
         || echo "[entrypoint] WARNING: failed to enforce compression.threshold"
     "$HERMES_BIN" config set auxiliary.title_generation.provider \
-        "${HERMES_ENFORCED_AUX_TITLE_PROVIDER:-copilot}" >/dev/null 2>&1 \
-        && echo "[entrypoint] Enforced auxiliary.title_generation.provider = ${HERMES_ENFORCED_AUX_TITLE_PROVIDER:-copilot}" \
+        "${HERMES_ENFORCED_AUX_TITLE_PROVIDER:-codex}" >/dev/null 2>&1 \
+        && echo "[entrypoint] Enforced auxiliary.title_generation.provider = ${HERMES_ENFORCED_AUX_TITLE_PROVIDER:-codex}" \
         || echo "[entrypoint] WARNING: failed to enforce auxiliary.title_generation.provider"
     "$HERMES_BIN" config set auxiliary.title_generation.model \
         "${HERMES_ENFORCED_AUX_TITLE_MODEL:-gpt-5.5}" >/dev/null 2>&1 \
