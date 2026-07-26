@@ -18,6 +18,15 @@ Use this when Gordon asks for a new page under `wiki/hobbies/`, especially a pra
 - Download reusable images locally under `/opt/data/hermes-pages/wiki/assets/` rather than hotlinking. Record credits/licenses in the page.
 - Visually verify downloaded images when possible; if an image is only conceptually useful, caption it clearly rather than overselling it.
 
+## Deleting or removing published hobbies pages
+
+When Gordon asks to delete a published hobbies page:
+1. Confirm/scope which URL(s) are in scope, then remove discoverability first: delete links from `/wiki/index.html` and any parent page such as `/wiki/hobbies/backcountry-fishing.html`.
+2. Remove or replace the page file and local assets. **Cloudflare Pages Direct Upload can continue serving previously uploaded static files/assets even after they are deleted from the repo.** Do not rely on deletion alone if old content must disappear.
+3. Preferred pattern for sensitive/stale removals: replace the old `.html` file with a small high-contrast tombstone page saying the page was removed and linking back to the parent page; replace old image assets with tiny tombstone files so stale photos are overwritten. This is more reliable than `_redirects` alone, because existing uploaded static routes/assets may win over redirect rules or edge cache.
+4. `_redirects` can be added as a belt-and-suspenders fallback, but verify the canonical extensionless URL and asset URLs no longer show old destination content. Use cache-busting query strings if needed to distinguish CDN cache from current upload.
+5. Commit, push, deploy with Wrangler, and verify: parent/index have no links, old page routes show the tombstone or parent page, old assets no longer serve the original images/content, and `git status --short` is clean.
+
 ## Verification checklist
 
 Before commit:

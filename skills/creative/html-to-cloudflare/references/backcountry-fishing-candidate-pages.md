@@ -10,7 +10,8 @@ Stable preferences from recent fishing sessions:
 - Close-to-Dublin candidates matter; call out drive time from Dublin, CA when comparing options.
 - A candidate can be valuable as a **timberline/high-country variant**, but say clearly if the timberline terrain and the best creek fishing are not co-located.
 - Distinguish lake/basecamp trips from true creek/pocket-water trips. Do not oversell lake/reservoir scenery as matching the plunge-pool benchmark.
-- For practical pages, include a clear verdict: best first bet, best logistics, benchmark fit, and risks.
+- **No off-road surprise:** exclude or strongly downgrade destinations where Jeeps, side-by-sides, or high-clearance 4WD roads can reach the lake basin, camp zone, or nearby fishing corridor. Before creating a page, explicitly check for OHV/4WD/Forest Road access to named lakes, divides, trailheads, and adjacent basins.
+- For practical pages, include a clear verdict: best first bet, best logistics, benchmark fit, vehicle-access/OHV risk, and other risks.
 
 ## Recommended page structure
 
@@ -56,10 +57,12 @@ Always label these as **no-traffic estimates**.
 
 ## Recently evaluated candidate signals
 
-- **Clark Fork / Iceberg Meadow**: strongest sub-4-hour creek-shape candidate from Dublin; likely below timberline. Good for possible pocket/cascade water, not a clean timberline trip.
-- **Kennedy Meadows / Relief Reservoir / Emigrant**: strongest logistics candidate under 4 hours; more lake/granite/basecamp oriented unless specific moving-water targets are confirmed.
-- **Sonora Pass / PCT / Leavitt Peak**: shortest-drive true timberline feel. Best creek fishing is adjacent/lower at Leavitt Meadows / West Walker, not on the exposed PCT crest.
-- **Golden Trout Wilderness / Cottonwood Creek**: iconic golden trout / high-country trip, but far from Dublin and not a short-drive candidate.
+- **Clark Fork / Iceberg Meadow**: strongest sub-4-hour creek-shape candidate from Dublin; likely below timberline. Good for possible pocket/cascade water, not a clean timberline trip. Road reaches trailhead/campground, but wilderness travel beyond is foot/horse rather than Jeep terrain.
+- **Kennedy Meadows / Relief Reservoir / Emigrant**: strongest logistics candidate under 4 hours; more lake/granite/basecamp oriented unless specific moving-water targets are confirmed. First stretch has resort/pack-station road and horses, but motorized/mechanized travel is prohibited after the Emigrant Wilderness boundary.
+- **Sonora Pass / PCT / Leavitt Peak**: shortest-drive true timberline feel, but now disfavored for Gordon's shortlist because Leavitt Lake is reachable by rough high-clearance 4WD road and rigs can be present in the basin. Do not create/restore a recommendation page unless Gordon explicitly waives the no-off-road-access criterion.
+- **Carson Pass / Fourth of July Lake / Summit City Creek**: granite/timberline-ish and attractive from Carson Pass/Woods Lake, but disfavored because the Forestdale Divide / Blue Lakes side has 4WD access near Summit City Trail/Summit City Creek. Treat as OHV-adjacent unless a future plan explicitly avoids and accepts that adjacency.
+- **Highland Lakes / Ebbetts / Forestdale / upper Mokelumne headwaters**: disfavored for the same reason; dirt/4WD/OHV access reaches or approaches high lake basins and the user also had poor fishing on the Hwy 4/Mokelumne profile.
+- **Golden Trout Wilderness / Cottonwood Creek**: iconic golden trout / high-country trip, far from Dublin, but safe from Jeeps once beyond Horseshoe Meadow trailheads.
 
 ## Verification checklist
 
