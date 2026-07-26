@@ -9,6 +9,7 @@ Use when Gordon asks for a separate web/wiki page for a backcountry fishing dest
 - Include:
   - concise fit statement against Gordon's benchmark: steep remote creek/plunge-pool canyon vs timberline/alpine/meadow variant;
   - logistics viability near the top, including drive time from Dublin when the page is positioned as a practical alternative;
+  - off-road/OHV screen: explicitly flag and usually exclude destinations where Jeeps, side-by-sides, or high-clearance 4WD roads can reach the lake basin, camp zone, or nearby fishing corridor;
   - clear split between scenic/timberline zone and best fishable moving-water zone when they are not co-located;
   - quick facts box: trailhead, route, permit, fishing style, trip length, verdict;
   - proposed itinerary with nights/days separated;

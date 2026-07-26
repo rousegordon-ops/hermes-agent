@@ -129,9 +129,12 @@ GIT_TERMINAL_PROMPT=0 git push origin main
 
 Always use `npx -y -p node@22 -p wrangler wrangler pages deploy <dir> --project-name <project> --commit-dirty=true`.
 
-**Confirm project before destructive operations.** If asked to delete a wiki or site, verify the source directory AND the Cloudflare project name before proceeding. A URL like `https://gordon-pages.pages.dev/` does NOT map to `/opt/data/hermes-pages/` — they are separate Cloudflare Pages projects.
+**Deleting files on Direct Upload may leave old assets/pages still served.** Cloudflare Pages Direct Upload can continue serving previously uploaded static files after they are deleted locally and redeployed, especially extensionless `.html` routes and image assets. When Gordon asks to delete a public page that should no longer show content, do not rely on deletion alone. Prefer one of:
+- Replace the old `.html` route with a small “Page removed” tombstone that links back to the relevant hub, then remove all navigation/list links.
+- Replace old image assets with small tombstone files if the bytes/content should no longer be available.
+- Verify with cache-busted canonical URLs (`?cb=<commit>`) that old destination-specific phrases/images are gone. Non-cache-busted checks can show stale content.
 
-For LLM-backed static apps, especially apps that call a Cloudflare Pages Function and should leverage an existing local/site knowledge base, follow `references/llm-backed-static-apps.md`: keep secrets server-side, include a fallback/example mode, sanitize model JSON, surface KB grounding in the UI, run syntax checks, deploy, and verify the canonical URL plus API response.
+**Before deleting any file, directory, or wiki:**
 
 ## Generated compendium pages (gbrain → HTML)
 
