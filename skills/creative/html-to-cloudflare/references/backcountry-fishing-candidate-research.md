@@ -22,6 +22,18 @@ For each candidate, write a terse note with:
 
 Avoid overstating lake-heavy alpine basins as direct replacements for Sheep Crossing. Label them as `timberline variant`, `lake-first`, `longer-haul`, or `needs moving-water verification`.
 
+## Short-drive timberline / granite findings from 2026-07 session
+
+When Gordon asks for *shortest drive from Dublin to timberline with decent creek fishing*, first check the geography split:
+
+- **Carson Pass / Round Top / Winnemucca / Fourth of July Lake / Summit City Creek** — best short-drive granite/timberline-ish candidate. Approx. 3.5 hours from Dublin in no-traffic routing. Stronger granite/high-country feel than Sonora Pass; fishing angle is Summit City Creek/tumbling inlet-outlet water, not a guaranteed North Fork San Joaquin-style plunge-pool canyon. Main constraint is Carson Pass Management Area permits/assigned campsites. Detail page: `/wiki/hobbies/carson-pass-summit-city-creek`.
+- **Sonora Pass / PCT / Leavitt Peak** — fastest/cleanest timberline access, but more volcanic than granite and the best moving-water fishing is usually lower (Leavitt Meadows / West Walker corridor), not perfectly co-located with true timberline. Detail page: `/wiki/hobbies/sonora-pass-pct-leavitt-peak`.
+- **Clark Fork / Kennedy Meadows** — best practical sub-4-hour logistics/fishing access, but mostly below timberline. Clark Fork/Iceberg Meadow is a forested creek/meadow trip; Kennedy/Relief Reservoir is lower and not true timberline. Detail page: `/wiki/hobbies/clark-fork-kennedy-meadows`.
+- **Kennedy Meadows → Relief/Summit Creek/Granite Dome side** — more granite feel than Sonora Pass and still roughly under-4-hour trailhead logistics, but timberline requires pushing deeper than a simple Relief Reservoir trip.
+- **Ebbetts/Highland Lakes/Noble/Silver Creek** — possible short-drive high-country granite-ish option, but keep lower confidence because Gordon has had poor Mokelumne/Hwy 4 headwaters results.
+
+For these mixed-fit trips, explicitly distinguish: `short-drive logistics`, `granite vs volcanic feel`, `timberline scenery`, and `fishable moving water`. Do not collapse them into one score.
+
 ## Timberline candidates added in 2026-07 session
 
 - **Golden Trout Lakes from Onion Valley — John Muir Wilderness**

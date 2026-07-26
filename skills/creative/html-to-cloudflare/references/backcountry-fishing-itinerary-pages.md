@@ -8,8 +8,11 @@ Use when Gordon asks for a separate web/wiki page for a backcountry fishing dest
 - Keep it practical and trip-planning oriented, not a generic destination article.
 - Include:
   - concise fit statement against Gordon's benchmark: steep remote creek/plunge-pool canyon vs timberline/alpine/meadow variant;
+  - logistics viability near the top, including drive time from Dublin when the page is positioned as a practical alternative;
+  - clear split between scenic/timberline zone and best fishable moving-water zone when they are not co-located;
   - quick facts box: trailhead, route, permit, fishing style, trip length, verdict;
   - proposed itinerary with nights/days separated;
+  - if Gordon specifies a departure assumption such as “drive up in the morning on Day 1,” bake that into Day 1 and avoid a night-before trailhead-camp itinerary;
   - planning cautions: permits, current road/snow, fire restrictions, bear canister/food storage, fishing regulations;
   - sources and image credits;
   - backlink to `/wiki/hobbies/backcountry-fishing`.
