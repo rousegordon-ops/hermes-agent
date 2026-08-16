@@ -14,6 +14,7 @@ Use when Gordon asks for a separate web/wiki page for a backcountry fishing dest
   - quick facts box: trailhead, route, permit, fishing style, trip length, verdict;
   - proposed itinerary with nights/days separated;
   - if Gordon specifies a departure assumption such as “drive up in the morning on Day 1,” bake that into Day 1 and avoid a night-before trailhead-camp itinerary;
+  - when Gordon changes the day-by-day mileage/camp structure, update every representation of that structure: lede, quick facts/route line, fit/caveat text, elevation-profile caption, itinerary cards, fishing notes, and any local route/elevation SVG diagrams;
   - planning cautions: permits, current road/snow, fire restrictions, bear canister/food storage, fishing regulations;
   - sources and image credits;
   - backlink to `/wiki/hobbies/backcountry-fishing`.
