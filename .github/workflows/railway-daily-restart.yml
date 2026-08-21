@@ -1,0 +1,38 @@
+name: Railway Daily Restart
+
+on:
+  schedule:
+    # 4:30 AM Pacific during daylight time, 3:30 AM during standard time.
+    - cron: "30 11 * * *"
+  workflow_dispatch:
+
+jobs:
+  restart-hermes-agent:
+    name: Restart pretty-amazement hermes-agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: c49b3e8b-a36d-4d24-a972-eab5e05b881d
+      RAILWAY_SERVICE_ID: c32be0a9-9d43-49a8-bf43-764915360dfb
+      RAILWAY_ENVIRONMENT: production
+
+    steps:
+      - name: Check Railway token
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::error::Missing GitHub Actions secret RAILWAY_TOKEN"
+            exit 1
+          fi
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@5.41.2
+
+      - name: Restart Railway service
+        run: |
+          railway restart \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT" \
+            --service "$RAILWAY_SERVICE_ID" \
+            --yes
