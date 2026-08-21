@@ -14,15 +14,16 @@ jobs:
 
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
       RAILWAY_PROJECT_ID: c49b3e8b-a36d-4d24-a972-eab5e05b881d
       RAILWAY_SERVICE_ID: c32be0a9-9d43-49a8-bf43-764915360dfb
       RAILWAY_ENVIRONMENT: production
 
     steps:
-      - name: Check Railway token
+      - name: Check Railway auth token
         run: |
-          if [ -z "$RAILWAY_TOKEN" ]; then
-            echo "::error::Missing GitHub Actions secret RAILWAY_TOKEN"
+          if [ -z "$RAILWAY_TOKEN" ] && [ -z "$RAILWAY_API_TOKEN" ]; then
+            echo "::error::Missing GitHub Actions secret RAILWAY_TOKEN or RAILWAY_API_TOKEN"
             exit 1
           fi
 
