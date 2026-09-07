@@ -29,6 +29,12 @@ If Gordon says “fantasy recommendations,” run cron job `b3cfac1234b9`. If un
 
 Fantasy recommendations must be **specific executable actions**, not labels or analysis alone.
 
+Lead with the conclusion:
+
+- If any action is recommended, the first substantive line must be `Action: ...` with the exact add/drop, start/sit, trade, or bid.
+- If no action is recommended, the first substantive line must be `Action: Do nothing / hold.`
+- Do not open with general guidance, matchup overview, player blurbs, injury context, or waiver theory. Put those after the action, and keep them brief.
+
 Good outputs:
 
 - `Add Y; drop X.`
