@@ -43,14 +43,37 @@ Bad output:
 
 Convert that into the move: `Add Y; drop X.`
 
+## Data Sources
+
+Gordon's Sleeper league can be queried via the public Sleeper API:
+
+- Username: `GordonOnSleeper`
+- League ID: `1389388645986750464`
+
+Use these before asking Gordon for roster/waiver context:
+
+- `https://api.sleeper.app/v1/user/GordonOnSleeper`
+- `https://api.sleeper.app/v1/league/1389388645986750464`
+- `https://api.sleeper.app/v1/league/1389388645986750464/rosters`
+- `https://api.sleeper.app/v1/league/1389388645986750464/users`
+- `https://api.sleeper.app/v1/state/nfl`
+- `https://api.sleeper.app/v1/league/1389388645986750464/matchups/{current_week}`
+- `https://api.sleeper.app/v1/league/1389388645986750464/transactions/{current_week}`
+- `https://api.sleeper.app/v1/players/nfl/trending/add?lookback_hours=24&limit=50`
+- `https://api.sleeper.app/v1/players/nfl/trending/drop?lookback_hours=24&limit=25`
+- `https://api.sleeper.app/v1/players/nfl`
+
+To identify Gordon's roster, resolve the Sleeper `user_id`, then match it to league rosters by `owner_id`. To identify likely waiver/free-agent targets, subtract all rostered player IDs from candidate/trending/player lists.
+
 ## Workflow
 
-1. Check current news/rankings for time-sensitive advice.
-2. Use roster/scoring context when available.
-3. Decide whether a move is actually worth making.
-4. Return the exact action first.
-5. Add only brief rationale.
-6. If no move is best, say `Do nothing`.
+1. Pull Sleeper roster, league settings, users, matchups, transactions, and likely waiver options when advice is roster-specific.
+2. Check current news/rankings for time-sensitive advice.
+3. Use roster/scoring context when available.
+4. Decide whether a move is actually worth making.
+5. Return the exact action first.
+6. Add only brief rationale.
+7. If no move is best, say `Do nothing`.
 
 ## Response Shape
 
