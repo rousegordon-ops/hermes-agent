@@ -1,6 +1,6 @@
 name: sleeper-recs
-version: 1.0.0
-description: "Trigger Gordon's Sleeper fantasy football recommendations from a short Telegram phrase."
+version: 1.1.0
+description: "Run Gordon's Sleeper fantasy football recommendations immediately from a short Telegram phrase."
 author: "Gordon Rouse"
 kind: backend
 hooks:
