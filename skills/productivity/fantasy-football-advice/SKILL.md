@@ -91,6 +91,8 @@ Use this structure:
 - Do not recommend marginal churn; `do nothing` is valid.
 - Do not overvalue upside stashes without saying who to add/drop.
 - Own prior bad advice briefly, then give the corrected action.
+- Do not claim “I recommended X earlier” unless the visible conversation text actually says that. If a context-compaction summary and recent visible messages conflict, trust the visible user-facing message and acknowledge uncertainty instead of asserting continuity.
+- Before giving waiver advice, separate confirmed Sleeper facts, public-news facts, and inference. If availability output was truncated or uncertain, re-query before recommending an add/drop.
 
 ## Checklist
 
