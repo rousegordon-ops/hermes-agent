@@ -11,7 +11,7 @@ from hermes_cli.codex_models import DEFAULT_CODEX_MODELS, get_codex_model_ids
 def test_get_codex_model_ids_prioritizes_default_and_cache(tmp_path, monkeypatch):
     codex_home = tmp_path / "codex-home"
     codex_home.mkdir(parents=True, exist_ok=True)
-    (codex_home / "config.toml").write_text('model = "gpt-5.2-codex"\n')
+    (codex_home / "config.toml").write_text('model = "gpt-5.3-codex"\n')
     (codex_home / "models_cache.json").write_text(
         json.dumps(
             {
@@ -28,12 +28,12 @@ def test_get_codex_model_ids_prioritizes_default_and_cache(tmp_path, monkeypatch
 
     models = get_codex_model_ids()
 
-    assert models[0] == "gpt-5.2-codex"
+    assert models[0] == "gpt-5.3-codex"
     assert "gpt-5.1-codex" in models
     assert "gpt-5.3-codex" in models
-    # Non-codex-suffixed models are included when the cache says they're available
+    # The cache is account-specific, so visible general GPT models remain valid.
     assert "gpt-5.4" in models
-    assert "gpt-5.4-mini" in models
+    assert "gpt-5.4-mini" not in models
     assert "gpt-5-hidden-codex" not in models
 
 
@@ -53,11 +53,11 @@ def test_get_codex_model_ids_falls_back_to_curated_defaults(tmp_path, monkeypatc
     models = get_codex_model_ids()
 
     assert models[: len(DEFAULT_CODEX_MODELS)] == DEFAULT_CODEX_MODELS
-    assert "gpt-5.4" in models
+    assert "gpt-5.6-terra" in models
     assert "gpt-5.3-codex-spark" not in models
 
 
-def test_get_codex_model_ids_adds_forward_compat_models_from_templates(monkeypatch):
+def test_get_codex_model_ids_preserves_live_account_model_list(monkeypatch):
     monkeypatch.setattr(
         "hermes_cli.codex_models._fetch_models_from_api",
         lambda access_token: ["gpt-5.2-codex"],
@@ -65,7 +65,7 @@ def test_get_codex_model_ids_adds_forward_compat_models_from_templates(monkeypat
 
     models = get_codex_model_ids(access_token="codex-access-token")
 
-    assert models == ["gpt-5.2-codex", "gpt-5.4-mini", "gpt-5.4", "gpt-5.3-codex"]
+    assert models == ["gpt-5.2-codex"]
 
 
 def test_model_command_uses_runtime_access_token_for_codex_list(monkeypatch):

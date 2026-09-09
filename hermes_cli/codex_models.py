@@ -12,45 +12,11 @@ import os
 logger = logging.getLogger(__name__)
 
 DEFAULT_CODEX_MODELS: List[str] = [
+    "gpt-5.6-terra",
+    "gpt-5.6-sol",
+    "gpt-5.6-luna",
     "gpt-5.5",
-    "gpt-5.4-mini",
-    "gpt-5.4",
-    "gpt-5.3-codex",
-    "gpt-5.2-codex",
-    "gpt-5.1-codex-max",
-    "gpt-5.1-codex-mini",
 ]
-
-_FORWARD_COMPAT_TEMPLATE_MODELS: List[tuple[str, tuple[str, ...]]] = [
-    ("gpt-5.5", ("gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex")),
-    ("gpt-5.4-mini", ("gpt-5.3-codex", "gpt-5.2-codex")),
-    ("gpt-5.4", ("gpt-5.3-codex", "gpt-5.2-codex")),
-    ("gpt-5.3-codex", ("gpt-5.2-codex",)),
-]
-
-
-def _add_forward_compat_models(model_ids: List[str]) -> List[str]:
-    """Add Clawdbot-style synthetic forward-compat Codex models.
-
-    If a newer Codex slug isn't returned by live discovery, surface it when an
-    older compatible template model is present. This mirrors Clawdbot's
-    synthetic catalog / forward-compat behavior for GPT-5 Codex variants.
-    """
-    ordered: List[str] = []
-    seen: set[str] = set()
-    for model_id in model_ids:
-        if model_id not in seen:
-            ordered.append(model_id)
-            seen.add(model_id)
-
-    for synthetic_model, template_models in _FORWARD_COMPAT_TEMPLATE_MODELS:
-        if synthetic_model in seen:
-            continue
-        if any(template in seen for template in template_models):
-            ordered.append(synthetic_model)
-            seen.add(synthetic_model)
-
-    return ordered
 
 
 def _fetch_models_from_api(access_token: str) -> List[str]:
@@ -88,7 +54,7 @@ def _fetch_models_from_api(access_token: str) -> List[str]:
         sortable.append((rank, slug))
 
     sortable.sort(key=lambda x: (x[0], x[1]))
-    return _add_forward_compat_models([slug for _, slug in sortable])
+    return [slug for _, slug in sortable]
 
 
 def _read_default_model(codex_home: Path) -> Optional[str]:
@@ -148,8 +114,9 @@ def _read_cache_models(codex_home: Path) -> List[str]:
 def get_codex_model_ids(access_token: Optional[str] = None) -> List[str]:
     """Return available Codex model IDs, trying API first, then local sources.
     
-    Resolution order: API (live, if token provided) > config.toml default >
-    local cache > hardcoded defaults.
+    Resolution order: API (live, if token provided) > local cache > hardcoded
+    defaults.  A local config default only controls ordering when it is present
+    in an authoritative API/cache listing.
     """
     codex_home_str = os.getenv("CODEX_HOME", "").strip() or str(Path.home() / ".codex")
     codex_home = Path(codex_home_str).expanduser()
@@ -159,19 +126,21 @@ def get_codex_model_ids(access_token: Optional[str] = None) -> List[str]:
     if access_token:
         api_models = _fetch_models_from_api(access_token)
         if api_models:
-            return _add_forward_compat_models(api_models)
+            return api_models
 
-    # Fall back to local sources
+    # The Codex CLI cache is populated from the same account-specific endpoint.
+    # Do not merge in a stale config.toml model, which can reintroduce a model
+    # that the account no longer supports.
     default_model = _read_default_model(codex_home)
-    if default_model:
-        ordered.append(default_model)
-
-    for model_id in _read_cache_models(codex_home):
-        if model_id not in ordered:
-            ordered.append(model_id)
+    cached_models = _read_cache_models(codex_home)
+    if cached_models:
+        if default_model in cached_models:
+            ordered.append(default_model)
+        ordered.extend(model_id for model_id in cached_models if model_id not in ordered)
+        return ordered
 
     for model_id in DEFAULT_CODEX_MODELS:
         if model_id not in ordered:
             ordered.append(model_id)
 
-    return _add_forward_compat_models(ordered)
+    return ordered
