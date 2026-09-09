@@ -10,6 +10,9 @@ metadata:
     homepage: https://github.com/rousegordon-ops/hermes-pages
 ---
 
+> Deployment update (2026-09-09): Gordon retired gbrain. Any gbrain setup, sync, maintenance, or rendering instructions below are historical and must not be executed. Use native Hermes memory and project files; do not reinstall gbrain.
+
+
 # HTML → Cloudflare Pages
 
 Generate HTML content and publish it to Gordon's personal Cloudflare Pages deployment. **The canonical workflow for any generated HTML that Gordon wants to view live without copy-pasting.**

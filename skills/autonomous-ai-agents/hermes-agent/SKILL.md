@@ -11,6 +11,9 @@ metadata:
     related_skills: [claude-code, codex, opencode]
 ---
 
+> Deployment update (2026-09-09): Gordon retired gbrain. Any gbrain setup, sync, maintenance, or rendering instructions below are historical and must not be executed. Use native Hermes memory and project files; do not reinstall gbrain.
+
+
 # Hermes Agent
 
 Hermes Agent is an open-source AI agent framework by Nous Research that runs in your terminal, messaging platforms, and IDEs. It belongs to the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Hermes works with any LLM provider (OpenRouter, Anthropic, OpenAI, DeepSeek, local models, and 15+ others) and runs on Linux, macOS, and WSL.
