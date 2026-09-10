@@ -57,6 +57,15 @@ if [ "$(id -u)" = "0" ]; then
         chown hermes:hermes "$HERMES_HOME/auth.json" 2>/dev/null || true
         chmod 600 "$HERMES_HOME/auth.json" 2>/dev/null || true
     fi
+    # Cron files may be rewritten by root-run maintenance/SSH commands while
+    # the volume root itself remains correctly owned. Repair these sensitive
+    # state files explicitly so the gateway can load schedules after restart.
+    for cron_state in jobs.json history.json; do
+        if [ -f "$HERMES_HOME/cron/$cron_state" ]; then
+            chown hermes:hermes "$HERMES_HOME/cron/$cron_state" 2>/dev/null || true
+            chmod 600 "$HERMES_HOME/cron/$cron_state" 2>/dev/null || true
+        fi
+    done
 
     echo "Dropping root privileges"
     exec gosu hermes "$0" "$@"
