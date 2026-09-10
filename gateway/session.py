@@ -469,6 +469,9 @@ class SessionEntry:
     # parallel counter on this entry.
     resume_pending: bool = False
     resume_reason: Optional[str] = None  # e.g. "restart_timeout"
+    previous_session_id: Optional[str] = None
+    # None means not captured; empty text is a captured empty snapshot.
+    continuity_context: Optional[str] = None
     last_resume_marked_at: Optional[datetime] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -492,6 +495,8 @@ class SessionEntry:
             "suspended": self.suspended,
             "resume_pending": self.resume_pending,
             "resume_reason": self.resume_reason,
+            "previous_session_id": self.previous_session_id,
+            "continuity_context": self.continuity_context,
             "last_resume_marked_at": (
                 self.last_resume_marked_at.isoformat()
                 if self.last_resume_marked_at
@@ -544,6 +549,8 @@ class SessionEntry:
             suspended=data.get("suspended", False),
             resume_pending=data.get("resume_pending", False),
             resume_reason=data.get("resume_reason"),
+            previous_session_id=data.get("previous_session_id"),
+            continuity_context=data.get("continuity_context"),
             last_resume_marked_at=last_resume_marked_at,
         )
 
@@ -886,6 +893,7 @@ class SessionStore:
                 auto_reset_reason = None
                 reset_had_activity = False
 
+            previous = self._entries.get(session_key)
             # Create new session
             session_id = f"{now.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
 
@@ -901,6 +909,7 @@ class SessionStore:
                 was_auto_reset=was_auto_reset,
                 auto_reset_reason=auto_reset_reason,
                 reset_had_activity=reset_had_activity,
+                previous_session_id=previous.session_id if previous else None,
             )
 
             self._entries[session_key] = entry
@@ -925,6 +934,20 @@ class SessionStore:
                 print(f"[gateway] Warning: Failed to create SQLite session: {e}")
 
         return entry
+
+    def get_continuity_context(self, entry: SessionEntry, n: int) -> str:
+        """Capture once per session; persist across restarts and agent eviction."""
+        with self._lock:
+            if entry.continuity_context is None:
+                from gateway.recent_exchanges import collect_recent_exchanges
+
+                entry.continuity_context = (
+                    collect_recent_exchanges(
+                        self.sessions_dir, session_id=entry.previous_session_id, n=min(n, 20)
+                    ) if entry.previous_session_id and n > 0 else ""
+                ) or ""
+                self._save()
+            return entry.continuity_context
 
     def update_session(
         self,
@@ -1121,6 +1144,7 @@ class SessionStore:
                 display_name=old_entry.display_name,
                 platform=old_entry.platform,
                 chat_type=old_entry.chat_type,
+                previous_session_id=old_entry.session_id,
             )
 
             self._entries[session_key] = new_entry

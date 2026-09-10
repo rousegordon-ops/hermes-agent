@@ -641,6 +641,18 @@ class CredentialPool:
                 self._mark_exhausted(entry, None)
             return None
 
+        if self.provider == "openai-codex":
+            timeout = max(float(auth_mod.AUTH_LOCK_TIMEOUT_SECONDS), 25.0)
+            with _auth_store_lock(timeout_seconds=timeout):
+                synced = self._sync_codex_entry_from_auth_store(entry)
+                if synced is not entry and not self._entry_needs_refresh(synced):
+                    return synced
+                return self._refresh_entry_impl(synced, force=force)
+        return self._refresh_entry_impl(entry, force=force)
+
+    def _refresh_entry_impl(self, entry: PooledCredential, *, force: bool) -> Optional[PooledCredential]:
+        # Caller holds the cross-process auth lock throughout Codex refresh,
+        # including persistence below. Refresh tokens may only be used once.
         try:
             if self.provider == "anthropic":
                 from agent.anthropic_adapter import refresh_anthropic_oauth_pure

@@ -284,3 +284,48 @@ async def test_drain_helper_noop_without_app():
     adapter._app = None
     # Should not raise
     await adapter._drain_polling_connections()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('stalled', ['shutdown', 'initialize', 'stop'])
+async def test_reconnect_moves_past_stalled_cleanup(stalled, monkeypatch):
+    from types import SimpleNamespace
+    from gateway.platforms import telegram as module
+    adapter = _make_adapter()
+    adapter._polling_error_callback_ref = None
+    never = asyncio.Event()
+    pool = SimpleNamespace(shutdown=AsyncMock(), initialize=AsyncMock())
+    updater = SimpleNamespace(running=True, stop=AsyncMock(), start_polling=AsyncMock())
+    target = updater if stalled == 'stop' else pool
+    setattr(target, stalled, AsyncMock(side_effect=never.wait))
+    adapter._app = SimpleNamespace(bot=SimpleNamespace(_request=(pool, None)), updater=updater)
+    monkeypatch.setattr(module, '_DRAIN_TIMEOUT', 0.01)
+    monkeypatch.setattr(module, '_UPDATER_STOP_TIMEOUT', 0.01)
+    with patch('asyncio.sleep', new_callable=AsyncMock):
+        await asyncio.wait_for(adapter._handle_polling_network_error(OSError('offline')), 1)
+    updater.start_polling.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('handler', ['_handle_polling_network_error', '_handle_polling_conflict'])
+async def test_stalled_polling_start_schedules_recovery(monkeypatch, handler):
+    from types import SimpleNamespace
+    from gateway.platforms import telegram as module
+    adapter = _make_adapter()
+    adapter._polling_error_callback_ref = None
+    adapter._drain_polling_connections = AsyncMock()
+    never = asyncio.Event()
+    adapter._app = SimpleNamespace(updater=SimpleNamespace(
+        running=False, start_polling=AsyncMock(side_effect=never.wait)))
+    # Use a kwargs-accepting coroutine like the real updater.
+    async def stalled_start(**kwargs):
+        await never.wait()
+    adapter._app.updater.start_polling = AsyncMock(side_effect=stalled_start)
+    monkeypatch.setattr(module, '_POLLING_START_TIMEOUT', 0.01)
+    with patch('asyncio.sleep', new_callable=AsyncMock):
+        await asyncio.wait_for(getattr(adapter, handler)(OSError('offline')), 1)
+    pending = list(adapter._background_tasks)
+    assert pending
+    for task in pending:
+        task.cancel()
+    await asyncio.gather(*pending, return_exceptions=True)

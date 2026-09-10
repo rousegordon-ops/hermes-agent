@@ -17,6 +17,7 @@ import asyncio
 import dataclasses
 import json
 import logging
+import math
 import os
 import re
 import shlex
@@ -46,6 +47,29 @@ from agent.account_usage import fetch_account_usage, render_account_usage_lines
 # from _enforce_agent_cache_cap() and _session_expiry_watcher() below.
 _AGENT_CACHE_MAX_SIZE = 128
 _AGENT_CACHE_IDLE_TTL_SECS = 3600.0  # evict agents idle for >1h
+
+
+def _agent_cache_max_size() -> int:
+    raw = os.environ.get("HERMES_AGENT_CACHE_MAX_SIZE")
+    if raw is None or raw == "":
+        return _AGENT_CACHE_MAX_SIZE
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        return _AGENT_CACHE_MAX_SIZE
+
+
+def _agent_cache_idle_ttl_secs() -> float:
+    raw = os.environ.get("HERMES_AGENT_CACHE_IDLE_TTL_SECS")
+    if raw is None or raw == "":
+        return float(_AGENT_CACHE_IDLE_TTL_SECS)
+    try:
+        value = float(raw)
+        return max(0.0, value) if math.isfinite(value) else float(_AGENT_CACHE_IDLE_TTL_SECS)
+    except (TypeError, ValueError):
+        return float(_AGENT_CACHE_IDLE_TTL_SECS)
+
+
 # Only auto-continue interrupted gateway turns while the interruption is fresh.
 # Stale tool-tail/resume markers can otherwise revive an unrelated old task
 # after a gateway restart when the user's next message starts new work.
@@ -346,6 +370,10 @@ if _config_path.exists():
                 os.environ["HERMES_AGENT_NOTIFY_INTERVAL"] = str(_agent_cfg["gateway_notify_interval"])
             if "restart_drain_timeout" in _agent_cfg and "HERMES_RESTART_DRAIN_TIMEOUT" not in os.environ:
                 os.environ["HERMES_RESTART_DRAIN_TIMEOUT"] = str(_agent_cfg["restart_drain_timeout"])
+            if "gateway_agent_cache_max_size" in _agent_cfg and "HERMES_AGENT_CACHE_MAX_SIZE" not in os.environ:
+                os.environ["HERMES_AGENT_CACHE_MAX_SIZE"] = str(_agent_cfg["gateway_agent_cache_max_size"])
+            if "gateway_agent_cache_idle_ttl" in _agent_cfg and "HERMES_AGENT_CACHE_IDLE_TTL_SECS" not in os.environ:
+                os.environ["HERMES_AGENT_CACHE_IDLE_TTL_SECS"] = str(_agent_cfg["gateway_agent_cache_idle_ttl"])
             if (
                 "gateway_auto_continue_freshness" in _agent_cfg
                 and "HERMES_AUTO_CONTINUE_FRESHNESS" not in os.environ
@@ -4679,31 +4707,20 @@ class GatewayRunner:
             session_entry.was_auto_reset = False
             session_entry.auto_reset_reason = None
 
-        # Inject the most recent user/assistant exchange pairs from prior
-        # transcripts so the agent has continuity across session boundaries
-        # (inactivity reset, daily reset, restart, etc.). The block is
-        # appended to context_prompt with delimiters and an instruction
-        # noting it is reference material — the model should consult it
-        # only if relevant to the current message.
+        # Reuse a persisted snapshot from this conversation's predecessor.
+        # Capturing once keeps the system prompt stable across later turns,
+        # cache eviction, and restarts; unrelated conversations are excluded.
         try:
             _rec_pcfg = _pcfg if isinstance(_pcfg, dict) else _load_gateway_config()
             _n_recent = int((_rec_pcfg.get("gateway") or {}).get("previous_exchanges_window", 5))
         except (TypeError, ValueError, NameError):
             _n_recent = 5
-        if _n_recent > 0:
-            try:
-                from gateway.recent_exchanges import collect_recent_exchanges
-                recent_block = collect_recent_exchanges(
-                    sessions_dir=self.session_store.sessions_dir,
-                    n=_n_recent,
-                )
-                if recent_block:
-                    context_prompt = (context_prompt + "\n\n" + recent_block) if context_prompt else recent_block
-                    logger.info("[recent_exchanges] injected %d chars (n=%d)", len(recent_block), _n_recent)
-                else:
-                    logger.info("[recent_exchanges] no prior exchanges available (n=%d)", _n_recent)
-            except Exception as e:
-                logger.info("[recent_exchanges] injection failed (non-fatal): %s", e, exc_info=True)
+        try:
+            recent_block = self.session_store.get_continuity_context(session_entry, _n_recent)
+            if recent_block:
+                context_prompt = (context_prompt + "\n\n" + recent_block) if context_prompt else recent_block
+        except Exception as e:
+            logger.info("[recent_exchanges] snapshot unavailable: %s", e)
 
         # Auto-load skill(s) for topic/channel bindings (Telegram DM Topics,
         # Discord channel_skill_bindings).  Supports a single name or ordered list.
@@ -9358,6 +9375,14 @@ class GatewayRunner:
         )
         return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
+    def _agent_used_fallback(self, session_key: str, agent) -> bool:
+        from hermes_cli.model_normalize import normalize_model_for_provider
+
+        configured = normalize_model_for_provider(
+            _resolve_gateway_model(), getattr(agent, "provider", "") or ""
+        )
+        return agent.model != configured and not self._is_intentional_model_switch(session_key, agent.model)
+
     def _apply_session_model_override(
         self, session_key: str, model: str, runtime_kwargs: dict
     ) -> tuple:
@@ -9619,7 +9644,8 @@ class GatewayRunner:
         # already-cached long-running one.  The cache may therefore stay
         # temporarily over cap; it will re-check on the next insert,
         # after active turns have finished.
-        excess = max(0, len(_cache) - _AGENT_CACHE_MAX_SIZE)
+        cache_max_size = _agent_cache_max_size()
+        excess = max(0, len(_cache) - cache_max_size)
         evict_plan: List[tuple] = []  # [(key, agent), ...]
         if excess > 0:
             ordered_keys = list(_cache.keys())
@@ -9633,12 +9659,12 @@ class GatewayRunner:
         for key, _ in evict_plan:
             _cache.pop(key, None)
 
-        remaining_over_cap = len(_cache) - _AGENT_CACHE_MAX_SIZE
+        remaining_over_cap = len(_cache) - cache_max_size
         if remaining_over_cap > 0:
             logger.warning(
                 "Agent cache over cap (%d > %d); %d excess slot(s) held by "
                 "mid-turn agents — will re-check on next insert.",
-                len(_cache), _AGENT_CACHE_MAX_SIZE, remaining_over_cap,
+                len(_cache), cache_max_size, remaining_over_cap,
             )
 
         for key, agent in evict_plan:
@@ -9655,7 +9681,7 @@ class GatewayRunner:
                 ).start()
 
     def _sweep_idle_cached_agents(self) -> int:
-        """Evict cached agents whose AIAgent has been idle > _AGENT_CACHE_IDLE_TTL_SECS.
+        """Evict cached agents whose AIAgent has exceeded the idle cache TTL.
 
         Safe to call from the session expiry watcher without holding the
         cache lock — acquires it internally.  Returns the number of entries
@@ -9668,6 +9694,9 @@ class GatewayRunner:
         _cache = getattr(self, "_agent_cache", None)
         _lock = getattr(self, "_agent_cache_lock", None)
         if _cache is None or _lock is None:
+            return 0
+        ttl_secs = _agent_cache_idle_ttl_secs()
+        if ttl_secs <= 0:
             return 0
         now = time.time()
         to_evict: List[tuple] = []
@@ -9686,7 +9715,7 @@ class GatewayRunner:
                 last_activity = getattr(agent, "_last_activity_ts", None)
                 if last_activity is None:
                     continue
-                if (now - last_activity) > _AGENT_CACHE_IDLE_TTL_SECS:
+                if (now - last_activity) > ttl_secs:
                     to_evict.append((key, agent))
             for key, _ in to_evict:
                 _cache.pop(key, None)
@@ -11463,8 +11492,7 @@ class GatewayRunner:
             _result_for_fb = result_holder[0]
             _run_failed = _result_for_fb.get("failed") if _result_for_fb else False
             if _agent is not None and hasattr(_agent, 'model') and not _run_failed:
-                _cfg_model = _resolve_gateway_model()
-                if _agent.model != _cfg_model and not self._is_intentional_model_switch(session_key, _agent.model):
+                if self._agent_used_fallback(session_key, _agent):
                     # Fallback activated on a successful run — evict cached
                     # agent so the next message retries the primary model.
                     self._evict_cached_agent(session_key)

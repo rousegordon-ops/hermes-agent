@@ -1332,3 +1332,73 @@ class TestCachedAgentInactivityReset:
             f"Watchdog would see {idle_secs:.0f}s idle, expected ~{STUCK_FOR}s. "
             "Inactivity timeout could not fire for a stuck interrupted turn."
         )
+
+
+@pytest.mark.parametrize('raw,expected', [('2', 2), ('0', 1), ('-3', 1), ('bad', 128), ('', 128)])
+def test_configured_cache_size(raw, expected, monkeypatch):
+    from gateway import run as gw
+    monkeypatch.setenv('HERMES_AGENT_CACHE_MAX_SIZE', raw)
+    assert gw._agent_cache_max_size() == expected
+
+
+@pytest.mark.parametrize('raw,expected', [('0.5', 0.5), ('0', 0), ('-1', 0), ('nan', 3600), ('inf', 3600), ('bad', 3600)])
+def test_configured_cache_ttl(raw, expected, monkeypatch):
+    from gateway import run as gw
+    monkeypatch.setenv('HERMES_AGENT_CACHE_IDLE_TTL_SECS', raw)
+    assert gw._agent_cache_idle_ttl_secs() == expected
+
+
+@pytest.mark.parametrize('provider,configured,actual,intentional,expected', [
+    ('openai-codex', 'openai-codex/gpt-5.3-codex-spark', 'gpt-5.3-codex-spark', False, False),
+    ('anthropic', 'anthropic/claude-sonnet-4.6', 'claude-sonnet-4-6', False, False),
+    ('openrouter', 'anthropic/claude-sonnet-4', 'anthropic/claude-sonnet-4', False, False),
+    ('openai-codex', 'openai-codex/gpt-5.3-codex-spark', 'fallback-model', False, True),
+    ('openai-codex', 'openai-codex/gpt-5.3-codex-spark', 'chosen-model', True, False),
+])
+def test_normalized_model_preserves_cache_but_real_fallback_evicts(provider, configured, actual, intentional, expected):
+    from types import SimpleNamespace
+    runner = _make_runner()
+    runner._is_intentional_model_switch = MagicMock(return_value=intentional)
+    with patch('gateway.run._resolve_gateway_model', return_value=configured):
+        assert runner._agent_used_fallback('session', SimpleNamespace(provider=provider, model=actual)) is expected
+
+
+def test_configured_cap_and_ttl_keep_active_agents(monkeypatch):
+    from types import SimpleNamespace
+    from collections import OrderedDict
+    from gateway import run as gw
+    runner = _make_runner()
+    active = SimpleNamespace(_last_activity_ts=0)
+    idle = SimpleNamespace(_last_activity_ts=0)
+    runner._agent_cache = OrderedDict([('active', (active, 'sig')), ('idle', (idle, 'sig'))])
+    runner._running_agents = {'active': active}
+    runner._release_evicted_agent_soft = MagicMock()
+    monkeypatch.setenv('HERMES_AGENT_CACHE_MAX_SIZE', '1')
+    monkeypatch.setenv('HERMES_AGENT_CACHE_IDLE_TTL_SECS', '0')
+    with runner._agent_cache_lock:
+        runner._enforce_agent_cache_cap()
+    assert 'active' in runner._agent_cache
+    assert runner._sweep_idle_cached_agents() == 0
+    monkeypatch.setenv('HERMES_AGENT_CACHE_IDLE_TTL_SECS', '0.01')
+    assert runner._sweep_idle_cached_agents() == 1
+    assert list(runner._agent_cache) == ['active']
+
+
+@pytest.mark.parametrize('override', [None, '4'])
+def test_yaml_cache_controls_reach_gateway_runtime(tmp_path, monkeypatch, override):
+    """Exercise the real startup config bridge, including environment precedence."""
+    import os
+    import subprocess
+    import sys
+    monkeypatch.delenv('HERMES_AGENT_CACHE_MAX_SIZE', raising=False)
+    monkeypatch.delenv('HERMES_AGENT_CACHE_IDLE_TTL_SECS', raising=False)
+    monkeypatch.setenv('HERMES_HOME', str(tmp_path))
+    if override:
+        monkeypatch.setenv('HERMES_AGENT_CACHE_MAX_SIZE', override)
+    (tmp_path / 'config.yaml').write_text('agent:\n  gateway_agent_cache_max_size: 2\n  gateway_agent_cache_idle_ttl: 12.5\n')
+    code = (
+        'import gateway.run as g; import json; '
+        'print(json.dumps([g._agent_cache_max_size(), g._agent_cache_idle_ttl_secs()]))'
+    )
+    output = subprocess.check_output([sys.executable, '-c', code], env=os.environ.copy(), text=True)
+    assert json.loads(output.strip().splitlines()[-1]) == [int(override or 2), 12.5]

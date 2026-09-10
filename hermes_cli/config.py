@@ -395,6 +395,11 @@ DEFAULT_CONFIG = {
         # to finish, then interrupts any remaining runs after the timeout.
         # 0 = no drain, interrupt immediately.
         "restart_drain_timeout": 60,
+        # Bounds for cached per-session AIAgent instances in the gateway.
+        # Lower values reduce idle memory retention on small hosted instances
+        # at the cost of more frequent agent/client reconstruction.
+        "gateway_agent_cache_max_size": 128,
+        "gateway_agent_cache_idle_ttl": 3600,
         # Max app-level retry attempts for API errors (connection drops,
         # provider timeouts, 5xx, etc.) before the agent surfaces the
         # failure.  The OpenAI SDK already does its own low-level retries

@@ -355,3 +355,43 @@ async def test_send_retries_retry_after_errors():
     assert result.success is True
     assert result.message_id == "300"
     assert attempt[0] == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('cause_name', ['ConnectTimeout', 'PoolTimeout', 'ReadTimeout', 'WriteTimeout', None])
+async def test_send_retries_only_timeout_before_transmission(cause_name, monkeypatch):
+    import httpx
+    from unittest.mock import AsyncMock
+    adapter = _make_adapter()
+    error = FakeTimedOut('Timed out')
+    if cause_name:
+        error.__cause__ = getattr(httpx, cause_name)('timeout')
+    calls = []
+
+    async def send_message(**kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            raise error
+        return SimpleNamespace(message_id=42)
+
+    adapter._bot = SimpleNamespace(send_message=send_message)
+    monkeypatch.setattr('asyncio.sleep', AsyncMock())
+    result = await adapter.send('123', 'hello')
+    safe = cause_name in ('ConnectTimeout', 'PoolTimeout')
+    assert result.success is safe
+    assert len(calls) == (2 if safe else 1)
+    if not safe:
+        assert not result.retryable
+
+
+@pytest.mark.asyncio
+async def test_pool_exhaustion_stays_retryable_after_three_attempts(monkeypatch):
+    from unittest.mock import AsyncMock
+    adapter = _make_adapter()
+    error = FakeTimedOut('Pool timeout: All connections occupied. Request was *not* sent to Telegram.')
+    send = AsyncMock(side_effect=error)
+    adapter._bot = SimpleNamespace(send_message=send)
+    monkeypatch.setattr('asyncio.sleep', AsyncMock())
+    result = await adapter.send('123', 'hello')
+    assert not result.success and result.retryable
+    assert send.await_count == 3

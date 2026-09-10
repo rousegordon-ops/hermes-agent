@@ -1510,3 +1510,56 @@ def test_codex_exhausted_entry_stays_stuck_without_auth_store_update(tmp_path, m
     # still skips it.
     available = pool._available_entries(clear_expired=True, refresh=False)
     assert available == []
+
+
+@pytest.mark.parametrize('force', [False, True])
+def test_concurrent_codex_refresh_consumes_token_once(tmp_path, monkeypatch, force):
+    """Two processes with stale snapshots must share one refresh and write-back."""
+    import multiprocessing
+    import os
+    if os.name != 'posix':
+        pytest.skip('Cross-process flock regression uses POSIX fork')
+    from agent import credential_pool as cp
+    from hermes_cli import auth
+    monkeypatch.setenv('HERMES_HOME', str(tmp_path / 'hermes'))
+    _write_auth_store(tmp_path, _codex_auth_store('access-OLD', 'refresh-OLD'))
+    entry = cp.PooledCredential.from_dict('openai-codex', {
+        'id': 'test', 'auth_type': cp.AUTH_TYPE_OAUTH, 'source': 'device_code',
+        'access_token': 'access-OLD', 'refresh_token': 'refresh-OLD',
+    })
+    monkeypatch.setattr(cp.CredentialPool, '_entry_needs_refresh', lambda self, e: e.access_token == 'access-OLD')
+    calls = tmp_path / 'refresh-calls'
+
+    def refresh(access, refresh_token):
+        assert auth._auth_lock_holder.depth > 0
+        assert refresh_token == 'refresh-OLD'
+        with calls.open('a') as stream:
+            stream.write('refresh\n')
+        time.sleep(0.1)
+        return {'access_token': 'access-NEW', 'refresh_token': 'refresh-NEW'}
+
+    monkeypatch.setattr(auth, 'refresh_codex_oauth_pure', refresh)
+    ctx = multiprocessing.get_context('fork')
+    barrier = ctx.Barrier(2)
+
+    def worker():
+        pool = cp.CredentialPool('openai-codex', [entry])
+        barrier.wait(timeout=5)
+        result = pool._refresh_entry(entry, force=force)
+        assert result.access_token == 'access-NEW'
+
+    processes = [ctx.Process(target=worker) for _ in range(2)]
+    try:
+        for process in processes:
+            process.start()
+        for process in processes:
+            process.join(timeout=10)
+            assert process.exitcode == 0
+        assert calls.read_text().splitlines() == ['refresh']
+        saved = json.loads((tmp_path / 'hermes' / 'auth.json').read_text())
+        assert saved['providers']['openai-codex']['tokens']['refresh_token'] == 'refresh-NEW'
+    finally:
+        for process in processes:
+            if process.is_alive():
+                process.terminate()
+                process.join()

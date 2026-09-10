@@ -235,6 +235,10 @@ def _wrap_markdown_tables(text: str) -> str:
     return '\n'.join(out)
 
 
+_DRAIN_TIMEOUT = 15.0
+_UPDATER_STOP_TIMEOUT = 15.0
+_POLLING_START_TIMEOUT = 30.0
+
 class TelegramAdapter(BasePlatformAdapter):
     """
     Telegram bot adapter.
@@ -389,6 +393,29 @@ class TelegramAdapter(BasePlatformAdapter):
             pass
         return isinstance(error, OSError)
 
+    @staticmethod
+    def _request_was_not_sent(error: BaseException) -> bool:
+        """Only retry timeouts known to precede transmission, avoiding duplicates."""
+        import httpx
+
+        seen = set()
+        stack = [error]
+        while stack:
+            current = stack.pop()
+            if id(current) in seen:
+                continue
+            seen.add(id(current))
+            if isinstance(current, (httpx.ConnectTimeout, httpx.PoolTimeout)):
+                return True
+            # PTB may lose the cause while translating its pool timeout.
+            message = str(current).lower()
+            if "pool timeout" in message and "not" in message and "sent" in message:
+                return True
+            for linked in (current.__cause__, current.__context__):
+                if linked is not None:
+                    stack.append(linked)
+        return False
+
     def _coerce_bool_extra(self, key: str, default: bool = False) -> bool:
         value = self.config.extra.get(key) if getattr(self.config, "extra", None) else None
         if value is None:
@@ -435,14 +462,14 @@ class TelegramAdapter(BasePlatformAdapter):
         except Exception:
             return
         try:
-            await polling_req.shutdown()
+            await asyncio.wait_for(polling_req.shutdown(), timeout=_DRAIN_TIMEOUT)
         except Exception:
             logger.debug(
                 "[%s] Polling request shutdown failed (non-fatal)",
                 self.name, exc_info=True,
             )
         try:
-            await polling_req.initialize()
+            await asyncio.wait_for(polling_req.initialize(), timeout=_DRAIN_TIMEOUT)
             logger.debug(
                 "[%s] Polling request pool drained before reconnect", self.name
             )
@@ -493,18 +520,18 @@ class TelegramAdapter(BasePlatformAdapter):
 
         try:
             if self._app and self._app.updater and self._app.updater.running:
-                await self._app.updater.stop()
+                await asyncio.wait_for(self._app.updater.stop(), timeout=_UPDATER_STOP_TIMEOUT)
         except Exception:
             pass
 
         await self._drain_polling_connections()
 
         try:
-            await self._app.updater.start_polling(
+            await asyncio.wait_for(self._app.updater.start_polling(
                 allowed_updates=Update.ALL_TYPES,
                 drop_pending_updates=False,
                 error_callback=self._polling_error_callback_ref,
-            )
+            ), timeout=_POLLING_START_TIMEOUT)
             logger.info(
                 "[%s] Telegram polling resumed after network error (attempt %d)",
                 self.name, attempt,
@@ -542,24 +569,26 @@ class TelegramAdapter(BasePlatformAdapter):
             )
             try:
                 if self._app and self._app.updater and self._app.updater.running:
-                    await self._app.updater.stop()
+                    await asyncio.wait_for(self._app.updater.stop(), timeout=_UPDATER_STOP_TIMEOUT)
             except Exception:
                 pass
             await asyncio.sleep(RETRY_DELAY)
             await self._drain_polling_connections()
             try:
-                await self._app.updater.start_polling(
+                await asyncio.wait_for(self._app.updater.start_polling(
                     allowed_updates=Update.ALL_TYPES,
                     drop_pending_updates=False,
                     error_callback=self._polling_error_callback_ref,
-                )
+                ), timeout=_POLLING_START_TIMEOUT)
                 logger.info("[%s] Telegram polling resumed after conflict retry %d", self.name, self._polling_conflict_count)
                 self._polling_conflict_count = 0  # reset on success
                 return
             except Exception as retry_err:
                 logger.warning("[%s] Telegram polling retry failed: %s", self.name, retry_err)
-                # Don't fall through to fatal yet — wait for the next conflict
-                # to trigger another retry attempt (up to MAX_CONFLICT_RETRIES).
+                if not self.has_fatal_error:
+                    task = asyncio.create_task(self._handle_polling_conflict(retry_err))
+                    self._background_tasks.add(task)
+                    task.add_done_callback(self._background_tasks.discard)
                 return
 
         # Exhausted retries — fatal
@@ -575,7 +604,7 @@ class TelegramAdapter(BasePlatformAdapter):
         self._set_fatal_error("telegram_polling_conflict", message, retryable=False)
         try:
             if self._app and self._app.updater:
-                await self._app.updater.stop()
+                await asyncio.wait_for(self._app.updater.stop(), timeout=_UPDATER_STOP_TIMEOUT)
         except Exception as stop_error:
             logger.warning("[%s] Failed stopping Telegram polling after conflict: %s", self.name, stop_error, exc_info=True)
         await self._notify_fatal_error()
@@ -993,11 +1022,11 @@ class TelegramAdapter(BasePlatformAdapter):
                 # Store reference for retry use in _handle_polling_conflict
                 self._polling_error_callback_ref = _polling_error_callback
 
-                await self._app.updater.start_polling(
+                await asyncio.wait_for(self._app.updater.start_polling(
                     allowed_updates=Update.ALL_TYPES,
                     drop_pending_updates=True,
                     error_callback=_polling_error_callback,
-                )
+                ), timeout=_POLLING_START_TIMEOUT)
             
             # Register bot commands so Telegram shows a hint menu when users type /
             # List is derived from the central COMMAND_REGISTRY — adding a new
@@ -1063,7 +1092,7 @@ class TelegramAdapter(BasePlatformAdapter):
             try:
                 # Only stop the updater if it's running
                 if self._app.updater and self._app.updater.running:
-                    await self._app.updater.stop()
+                    await asyncio.wait_for(self._app.updater.stop(), timeout=_UPDATER_STOP_TIMEOUT)
                 if self._app.running:
                     await self._app.stop()
                 await self._app.shutdown()
@@ -1216,7 +1245,7 @@ class TelegramAdapter(BasePlatformAdapter):
                         # TimedOut is also a subclass of NetworkError but
                         # indicates the request may have reached the server —
                         # retrying risks duplicate message delivery.
-                        if _TimedOut and isinstance(send_err, _TimedOut):
+                        if _TimedOut and isinstance(send_err, _TimedOut) and not self._request_was_not_sent(send_err):
                             raise
                         if _send_attempt < 2:
                             wait = 2 ** _send_attempt
@@ -1265,7 +1294,7 @@ class TelegramAdapter(BasePlatformAdapter):
             _to = locals().get("_TimedOut")
             err_str = str(e).lower()
             is_timeout = (_to and isinstance(e, _to)) or "timed out" in err_str
-            return SendResult(success=False, error=str(e), retryable=not is_timeout)
+            return SendResult(success=False, error=str(e), retryable=(not is_timeout or self._request_was_not_sent(e)))
 
     async def edit_message(
         self,

@@ -540,6 +540,13 @@ agent:
   # 0 = no drain, interrupt immediately.
   # restart_drain_timeout: 60
 
+  # Bounds for cached per-session AIAgent instances in the gateway.
+  # Lower these on memory-sensitive hosted deployments.
+  # Minimum 1; active turns remain protected even when over the limit.
+  # gateway_agent_cache_max_size: 128
+  # Seconds; 0 disables time-based eviction. Negative values clamp to 0.
+  # gateway_agent_cache_idle_ttl: 3600
+
   # Max app-level retry attempts for API errors (connection drops, provider
   # timeouts, 5xx, etc.) before the agent surfaces the failure. Lower this
   # to 1 if you use fallback providers and want fast failover on flaky
