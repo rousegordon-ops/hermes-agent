@@ -27,6 +27,8 @@ If Gordon says “fantasy recommendations,” run cron job `b3cfac1234b9`. If un
 
 ## Core Rule
 
+Gordon's league has a **$25 FAAB budget for the entire season**. Treat that as scarce capital: routine bids should be $0-$1, use $2 only for a clearly meaningful upgrade, and do not recommend several $3-$7 bids in one week unless the situation is truly exceptional.
+
 Fantasy recommendations must be **specific executable actions**, not labels or analysis alone.
 
 Lead with the conclusion:
